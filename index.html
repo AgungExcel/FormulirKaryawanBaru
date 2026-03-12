@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Formulir Karyawan Baru - PT Hop Lun Indonesia</title>
     
+    <!-- Favicon (Logo di Tab Browser) -->
+    <link rel="icon" type="image/png" href="hoplun128.png">
+    
     <!-- Tailwind CSS (Untuk Desain) -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -22,6 +25,11 @@
         /* Loading Overlay */
         #loadingOverlay { display: none; }
         #loadingOverlay.active { display: flex; }
+        
+        /* Hilangkan panah up/down di input number */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 flex flex-col min-h-screen overflow-x-hidden">
@@ -29,8 +37,13 @@
     <!-- Navbar -->
     <nav class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-20 shadow-sm">
         <div class="flex items-center gap-3">
-            <div class="bg-blue-600 p-2.5 rounded-lg shadow-sm text-white">
-                <i data-lucide="users" class="w-6 h-6"></i>
+            <div class="p-0.5 rounded-lg shadow-sm border border-gray-100 bg-white">
+                <!-- Logo Perusahaan -->
+                <img src="hoplun128.png" alt="Logo Hop Lun" class="w-10 h-10 object-contain rounded-md" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <!-- Fallback Ikon jika gambar gagal dimuat -->
+                <div class="w-10 h-10 bg-blue-600 rounded-md text-white items-center justify-center hidden">
+                    <i data-lucide="users" class="w-6 h-6"></i>
+                </div>
             </div>
             <div>
                 <h1 class="font-bold text-xl tracking-tight text-gray-800 leading-none">HR<span class="text-blue-600">Portal</span></h1>
@@ -85,15 +98,21 @@
                                 <i data-lucide="users" class="w-5 h-5 text-blue-600"></i> Data Pribadi
                             </h2>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Lengkap <span class="text-red-500">*</span></label>
-                                    <input required type="text" name="namaLengkap" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sesuai KTP"></div>
-                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nomor KTP <span class="text-red-500">*</span></label>
-                                    <input required type="number" name="nomorKTP" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="16 Digit NIK"></div>
+                                <div class="space-y-1.5">
+                                    <label class="text-sm font-medium text-gray-700">Nama Lengkap <span class="text-red-500">*</span></label>
+                                    <input required type="text" id="inputNamaLengkap" name="namaLengkap" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sesuai KTP">
+                                    <p id="err-nama" class="text-red-500 text-xs mt-1 hidden font-medium">❌ Nama tidak boleh mengandung angka!</p>
+                                </div>
+                                <div class="space-y-1.5">
+                                    <label class="text-sm font-medium text-gray-700">Nomor KTP <span class="text-red-500">*</span></label>
+                                    <input required type="text" inputmode="numeric" maxlength="16" id="inputKTP" name="nomorKTP" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="16 Digit NIK">
+                                    <p id="err-ktp" class="text-red-500 text-xs mt-1 hidden font-medium">❌ Nomor KTP wajib 16 digit!</p>
+                                </div>
                                 <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Jenis Kelamin <span class="text-red-500">*</span></label>
                                     <select required name="jenisKelamin" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none">
                                         <option value="">Pilih Jenis Kelamin</option>
-                                        <option value="MALE (Laki-laki)">MALE (Laki-laki)</option>
-                                        <option value="FEMALE (Perempuan)">FEMALE (Perempuan)</option>
+                                        <option value="MALE">MALE (Laki-laki)</option>
+                                        <option value="FEMALE">FEMALE (Perempuan)</option>
                                     </select></div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Tempat Lahir <span class="text-red-500">*</span></label>
@@ -113,20 +132,15 @@
                                     </select></div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Status Pernikahan <span class="text-red-500">*</span></label>
-                                        <select required name="statusPernikahan" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none">
+                                        <select required id="statusPernikahan" name="statusPernikahan" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none">
                                             <option value="">Pilih</option>
-                                            <option value="SINGLE">SINGLE</option>
-                                            <option value="MARRIED">MARRIED</option>
-                                            <option value="WIDOW">WIDOW (Janda/Duda)</option>
+                                            <option value="SINGLE">SINGLE (Lajang)</option>
+                                            <option value="MARRIED">MARRIED (Menikah)</option>
+                                            <option value="WIDOW">WIDOW (Janda / Duda)</option>
                                         </select></div>
                                     <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Jumlah Anak <span class="text-red-500">*</span></label>
-                                        <select required name="jumlahAnak" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none">
-                                            <option value="">Pilih</option>
-                                            <option value="TK0">TK0 (Tidak ada)</option>
-                                            <option value="K1">K1 (1 Anak)</option>
-                                            <option value="K2">K2 (2 Anak)</option>
-                                            <option value="K3">K3 (3 Anak)</option>
-                                            <option value="Lebih dari 3">Lebih dari 3</option>
+                                        <select required id="jumlahAnak" name="jumlahAnak" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-100" disabled>
+                                            <option value="">Pilih Status Dahulu</option>
                                         </select></div>
                                 </div>
                             </div>
@@ -139,7 +153,7 @@
                             </h2>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">No Handphone Aktif <span class="text-red-500">*</span></label>
-                                    <input required type="tel" name="noHandphone" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="08xxxx"></div>
+                                    <input required type="text" inputmode="numeric" id="inputNoHP" name="noHandphone" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="08xxxx"></div>
                                 <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Alamat Email</label>
                                     <input type="email" name="alamatEmail" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="email@contoh.com"></div>
                                 
@@ -163,12 +177,12 @@
 
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">RT (2 digit) <span class="text-red-500">*</span></label>
-                                        <input required type="number" name="rt" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none" placeholder="01"></div>
+                                        <input required type="text" inputmode="numeric" maxlength="3" name="rt" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none" placeholder="01"></div>
                                     <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">RW (2 digit) <span class="text-red-500">*</span></label>
-                                        <input required type="number" name="rw" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none" placeholder="02"></div>
+                                        <input required type="text" inputmode="numeric" maxlength="3" name="rw" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none" placeholder="02"></div>
                                 </div>
                                 <div class="md:col-span-2 space-y-1.5"><label class="text-sm font-medium text-gray-700">Alamat (Desa/Dukuh/Jalan) <span class="text-red-500">*</span></label>
-                                    <textarea required name="alamatDesa" rows="2" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none" placeholder="Patokan rumah..."></textarea></div>
+                                    <textarea required name="alamatDesa" rows="2" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none" placeholder="Tulis Alamat Rumah"></textarea></div>
                             </div>
                         </div>
 
@@ -182,8 +196,9 @@
                                     <select required name="pendidikanTerakhir" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none">
                                         <option value="">Pilih Pendidikan</option>
                                         <option value="SD">SD</option><option value="SMP">SMP</option>
-                                        <option value="SMA/SMK">SMA/SMK</option><option value="D1">D1</option>
-                                        <option value="D2">D2</option><option value="D3">D3</option><option value="D4/S1">D4/S1</option>
+                                        <option value="SMA/SMK">SMA/SMK</option>
+                                        <option value="D1">D1</option><option value="D2">D2</option><option value="D3">D3</option>
+                                        <option value="D4">D4</option><option value="S1">S1</option><option value="S2">S2</option>
                                     </select></div>
                                 <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Jurusan Sekolah</label>
                                     <input type="text" name="jurusanSekolah" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none" placeholder="Isi untuk SMA keatas"></div>
@@ -244,18 +259,24 @@
                                 <i data-lucide="alert-circle" class="w-5 h-5 text-red-600"></i> Kontak Darurat
                             </h2>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Kontak <span class="text-red-500">*</span></label>
-                                    <input required type="text" name="namaKontakDarurat" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none"></div>
-                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">No Telp / WA <span class="text-red-500">*</span></label>
-                                    <input required type="tel" name="noTelpDarurat" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none"></div>
+                                <div class="space-y-1.5">
+                                    <label class="text-sm font-medium text-gray-700">Nama Kontak <span class="text-red-500">*</span></label>
+                                    <input required type="text" id="inputNamaDarurat" name="namaKontakDarurat" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-400 outline-none">
+                                    <p id="err-nama-darurat" class="text-red-500 text-xs mt-1 hidden font-medium">❌ Tidak boleh sama dengan diri sendiri!</p>
+                                </div>
+                                <div class="space-y-1.5">
+                                    <label class="text-sm font-medium text-gray-700">No Telp / WA <span class="text-red-500">*</span></label>
+                                    <input required type="text" inputmode="numeric" id="inputTelpDarurat" name="noTelpDarurat" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-400 outline-none">
+                                    <p id="err-telp-darurat" class="text-red-500 text-xs mt-1 hidden font-medium">❌ Tidak boleh sama dengan nomor sendiri!</p>
+                                </div>
                                 <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Hubungan <span class="text-red-500">*</span></label>
-                                    <input required type="text" name="hubungan" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none" placeholder="Cth: Suami/Istri/Ortu"></div>
+                                    <input required type="text" name="hubungan" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-400 outline-none" placeholder="Cth: Suami/Istri/Ortu"></div>
                             </div>
                         </div>
 
                         <div class="pt-4 border-t border-gray-200">
-                            <button type="submit" id="btnSubmit" class="w-full md:w-auto md:min-w-[300px] float-right py-4 px-8 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg transition-all shadow-lg hover:shadow-xl hover:-translate-y-1">
-                                Kirim Data Karyawan
+                            <button type="submit" id="btnSubmit" class="w-full md:w-auto md:min-w-[300px] float-right py-4 px-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 tracking-wide">
+                                KIRIM
                             </button>
                             <div class="clear-both"></div>
                         </div>
@@ -275,8 +296,11 @@
                     </h1>
                     <p class="text-slate-400 text-sm mt-1">Gunakan "Export Excel" untuk mengunduh seluruh data dalam format .xlsx</p>
                 </div>
-                <div class="flex gap-3">
-                    <button id="btnShareQR" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg flex items-center gap-2 transition-colors text-sm font-medium">
+                <div class="flex gap-2 flex-wrap">
+                    <button id="btnOpenChangePwd" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 rounded-lg flex items-center gap-2 transition-colors text-sm font-medium shadow-md">
+                        <i data-lucide="key" class="w-4 h-4"></i> Ganti Password
+                    </button>
+                    <button id="btnShareQR" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg flex items-center gap-2 transition-colors text-sm font-medium shadow-md">
                         <i data-lucide="qr-code" class="w-4 h-4"></i> Share QR
                     </button>
                     <button id="btnExportExcel" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg flex items-center gap-2 transition-colors text-sm font-medium shadow-md">
@@ -305,6 +329,45 @@
         </div>
 
     </main>
+
+    <!-- Modal Login Admin -->
+    <div id="authModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full relative">
+            <button id="btnCloseAuth" class="absolute right-4 top-4 text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full p-1">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
+                <i data-lucide="lock" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-xl font-bold mb-2 text-center">Akses Admin</h3>
+            <p class="text-gray-500 text-sm mb-6 text-center">Masukkan password untuk melihat database.</p>
+            <form id="authForm" class="space-y-4">
+                <input type="password" id="authPassword" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Masukkan password..." required>
+                <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors">Masuk</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Ganti Password -->
+    <div id="changePwdModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full relative">
+            <button id="btnCloseChangePwd" class="absolute right-4 top-4 text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full p-1">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h3 class="text-xl font-bold mb-6 text-center">Ganti Password Admin</h3>
+            <form id="changePwdForm" class="space-y-4">
+                <div class="space-y-1">
+                    <label class="text-sm font-medium text-gray-700">Password Lama</label>
+                    <input type="password" id="oldPwd" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none" required>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-sm font-medium text-gray-700">Password Baru</label>
+                    <input type="password" id="newPwd" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none" required>
+                </div>
+                <button type="submit" class="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors mt-2">Simpan Password</button>
+            </form>
+        </div>
+    </div>
 
     <!-- Modal QR Code -->
     <div id="qrModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
@@ -353,6 +416,131 @@
         lucide.createIcons();
 
         // ----------------------------------------------------
+        // VALIDASI REAL-TIME (SAAT ITU JUGA)
+        // ----------------------------------------------------
+        const elNamaLengkap = document.getElementById('inputNamaLengkap');
+        const errNama = document.getElementById('err-nama');
+
+        const elKTP = document.getElementById('inputKTP');
+        const errKTP = document.getElementById('err-ktp');
+
+        const elNamaDarurat = document.getElementById('inputNamaDarurat');
+        const errNamaDarurat = document.getElementById('err-nama-darurat');
+
+        const elTelpDarurat = document.getElementById('inputTelpDarurat');
+        const elNoHP = document.getElementById('inputNoHP');
+        const errTelpDarurat = document.getElementById('err-telp-darurat');
+
+        // Validasi Nama Lengkap: Tolak Angka
+        elNamaLengkap.addEventListener('input', function() {
+            if (/\d/.test(this.value)) {
+                errNama.classList.remove('hidden');
+                this.value = this.value.replace(/\d/g, ''); // Langsung hapus angkanya
+            } else {
+                errNama.classList.add('hidden');
+            }
+            validasiKontakDarurat(); // Cek juga kesamaan kontak darurat saat nama berubah
+        });
+
+        // Validasi KTP: Harus 16 Digit dan hanya angka
+        elKTP.addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, ''); // Hapus selain angka
+            
+            if (this.value.length > 0 && this.value.length !== 16) {
+                errKTP.classList.remove('hidden');
+                this.setCustomValidity("KTP wajib 16 digit"); // Mencegah form di-submit
+            } else {
+                errKTP.classList.add('hidden');
+                this.setCustomValidity(""); // Form diizinkan submit jika sudah 16
+            }
+        });
+        
+        // Memaksa No HP dan RT/RW hanya bisa diisi angka
+        document.querySelectorAll('input[inputmode="numeric"]:not(#inputKTP)').forEach(el => {
+            el.addEventListener('input', function() {
+                this.value = this.value.replace(/\D/g, '');
+            });
+        });
+
+        // Validasi Kontak Darurat (Tidak boleh sama persis dengan diri sendiri)
+        function validasiKontakDarurat() {
+            const namaLengkapVal = elNamaLengkap.value.toLowerCase().trim();
+            const namaDaruratVal = elNamaDarurat.value.toLowerCase().trim();
+            const hpVal = elNoHP.value.trim();
+            const telpDaruratVal = elTelpDarurat.value.trim();
+
+            let isValid = true;
+
+            // Cek Kesamaan Nama
+            if (namaDaruratVal && namaLengkapVal && namaDaruratVal === namaLengkapVal) {
+                errNamaDarurat.classList.remove('hidden');
+                elNamaDarurat.setCustomValidity("Nama darurat tidak boleh sama dengan diri sendiri!");
+                isValid = false;
+            } else {
+                errNamaDarurat.classList.add('hidden');
+                elNamaDarurat.setCustomValidity("");
+            }
+
+            // Cek Kesamaan Nomor HP
+            if (telpDaruratVal && hpVal && telpDaruratVal === hpVal) {
+                errTelpDarurat.classList.remove('hidden');
+                elTelpDarurat.setCustomValidity("Nomor darurat tidak boleh sama dengan diri sendiri!");
+                isValid = false;
+            } else {
+                errTelpDarurat.classList.add('hidden');
+                elTelpDarurat.setCustomValidity("");
+            }
+        }
+
+        elNamaDarurat.addEventListener('input', validasiKontakDarurat);
+        elTelpDarurat.addEventListener('input', validasiKontakDarurat);
+        elNoHP.addEventListener('input', validasiKontakDarurat);
+
+        // ----------------------------------------------------
+        // STATUS PERNIKAHAN & JUMLAH ANAK (PILIHAN DINAMIS)
+        // ----------------------------------------------------
+        const elStatus = document.getElementById('statusPernikahan');
+        const elAnak = document.getElementById('jumlahAnak');
+
+        const opsiAnak = {
+            "SINGLE": [{val: "TK0", text: "TK0"}],
+            "MARRIED": [
+                {val: "K0", text: "K0"},
+                {val: "K1", text: "K1"},
+                {val: "K2", text: "K2"},
+                {val: "K3", text: "K3"}
+            ],
+            "WIDOW": [
+                {val: "TK0", text: "TK0"},
+                {val: "TK1", text: "TK1"},
+                {val: "TK2", text: "TK2"},
+                {val: "TK3", text: "TK3"}
+            ]
+        };
+
+        elStatus.addEventListener('change', function() {
+            const status = this.value;
+            elAnak.innerHTML = '<option value="">Pilih Jumlah Anak</option>';
+            
+            if (status && opsiAnak[status]) {
+                opsiAnak[status].forEach(opt => {
+                    const o = document.createElement('option');
+                    o.value = opt.val;
+                    o.textContent = opt.text;
+                    elAnak.appendChild(o);
+                });
+                elAnak.disabled = false;
+                elAnak.classList.remove('bg-gray-100');
+                elAnak.classList.add('bg-white');
+            } else {
+                elAnak.disabled = true;
+                elAnak.classList.remove('bg-white');
+                elAnak.classList.add('bg-gray-100');
+                elAnak.innerHTML = '<option value="">Pilih Status Dahulu</option>';
+            }
+        });
+
+        // ----------------------------------------------------
         // SISTEM TOAST NOTIFICATION (PENGGANTI ALERT)
         // ----------------------------------------------------
         window.showToast = function(message, type = 'success') {
@@ -377,22 +565,116 @@
             }, 3000);
         };
 
-        // Navigasi Tabs
+        // ----------------------------------------------------
+        // SISTEM PASSWORD ADMIN
+        // ----------------------------------------------------
+        const DEFAULT_PASSWORD = "AGUNG";
+        
+        function getAdminPassword() {
+            return localStorage.getItem('app_admin_password') || DEFAULT_PASSWORD;
+        }
+
+        function setAdminPassword(newPwd) {
+            localStorage.setItem('app_admin_password', newPwd);
+        }
+
+        // ----------------------------------------------------
+        // NAVIGASI & OTENTIKASI TAB
+        // ----------------------------------------------------
         const btnViewForm = document.getElementById('btnViewForm');
         const btnViewAdmin = document.getElementById('btnViewAdmin');
         const viewForm = document.getElementById('viewForm');
         const viewAdmin = document.getElementById('viewAdmin');
+        const authModal = document.getElementById('authModal');
+        const authForm = document.getElementById('authForm');
+        const authPasswordInput = document.getElementById('authPassword');
 
+        // Navigasi ke Form (Langsung tanpa password)
         btnViewForm.addEventListener('click', () => {
             viewForm.style.display = 'block'; viewAdmin.style.display = 'none';
             btnViewForm.classList.add('bg-white', 'shadow-sm', 'text-blue-600'); btnViewForm.classList.remove('text-gray-500');
             btnViewAdmin.classList.remove('bg-white', 'shadow-sm', 'text-blue-600'); btnViewAdmin.classList.add('text-gray-500');
         });
 
+        // Navigasi ke Admin (Minta Password)
         btnViewAdmin.addEventListener('click', () => {
-            viewForm.style.display = 'none'; viewAdmin.style.display = 'flex';
-            btnViewAdmin.classList.add('bg-white', 'shadow-sm', 'text-blue-600'); btnViewAdmin.classList.remove('text-gray-500');
-            btnViewForm.classList.remove('bg-white', 'shadow-sm', 'text-blue-600'); btnViewForm.classList.add('text-gray-500');
+            if (viewAdmin.style.display === 'flex') return; // Jika sudah di tab admin, abaikan
+            authModal.classList.remove('hidden');
+            authModal.classList.add('flex');
+            authPasswordInput.focus();
+        });
+
+        // Tutup Modal Auth
+        document.getElementById('btnCloseAuth').addEventListener('click', () => {
+            authModal.classList.add('hidden');
+            authModal.classList.remove('flex');
+            authPasswordInput.value = '';
+        });
+
+        // Submit Form Password Admin
+        authForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const inputPwd = authPasswordInput.value;
+
+            if (inputPwd === getAdminPassword()) {
+                // Password Benar -> Buka tab Admin
+                authModal.classList.add('hidden');
+                authModal.classList.remove('flex');
+                authPasswordInput.value = '';
+
+                viewForm.style.display = 'none'; 
+                viewAdmin.style.display = 'flex';
+                btnViewAdmin.classList.add('bg-white', 'shadow-sm', 'text-blue-600'); 
+                btnViewAdmin.classList.remove('text-gray-500');
+                btnViewForm.classList.remove('bg-white', 'shadow-sm', 'text-blue-600'); 
+                btnViewForm.classList.add('text-gray-500');
+            } else {
+                // Password Salah
+                showToast('Password yang Anda masukkan salah!', 'error');
+            }
+        });
+
+        // ----------------------------------------------------
+        // FITUR GANTI PASSWORD
+        // ----------------------------------------------------
+        const changePwdModal = document.getElementById('changePwdModal');
+        const changePwdForm = document.getElementById('changePwdForm');
+        
+        document.getElementById('btnOpenChangePwd').addEventListener('click', () => {
+            changePwdModal.classList.remove('hidden');
+            changePwdModal.classList.add('flex');
+            document.getElementById('oldPwd').value = '';
+            document.getElementById('newPwd').value = '';
+            document.getElementById('oldPwd').focus();
+        });
+
+        document.getElementById('btnCloseChangePwd').addEventListener('click', () => {
+            changePwdModal.classList.add('hidden');
+            changePwdModal.classList.remove('flex');
+        });
+
+        changePwdForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const oldPwdInput = document.getElementById('oldPwd').value;
+            const newPwdInput = document.getElementById('newPwd').value;
+
+            if (oldPwdInput !== getAdminPassword()) {
+                showToast('Password Lama salah!', 'error');
+                return;
+            }
+
+            if (newPwdInput.trim() === "") {
+                showToast('Password Baru tidak boleh kosong!', 'error');
+                return;
+            }
+
+            // Ganti password dan simpan ke localStorage browser
+            setAdminPassword(newPwdInput);
+            showToast('Password Admin berhasil diubah!', 'success');
+            
+            // Tutup Modal
+            changePwdModal.classList.add('hidden');
+            changePwdModal.classList.remove('flex');
         });
 
         // Tampilkan/Sembunyikan Kolom Pengalaman Garment
@@ -405,7 +687,7 @@
         // ----------------------------------------------------
         // INISIALISASI FIREBASE
         // ----------------------------------------------------
-        const initAuth = async () => {
+        const initAuthData = async () => {
             try {
                 const fbConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { projectId: "demo-app" };
                 appId = typeof __app_id !== 'undefined' ? __app_id : 'karyawan-app-demo';
@@ -435,7 +717,7 @@
             }
         };
 
-        initAuth();
+        initAuthData();
 
         // ----------------------------------------------------
         // API WILAYAH (EMSIFA) - Provinsi -> Kelurahan
@@ -520,6 +802,14 @@
         // ----------------------------------------------------
         document.getElementById('karyawanForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            // Pengecekan akhir khusus KTP agar tidak bocor
+            if(elKTP.value.length !== 16) {
+                showToast("Pengisian Gagal! Nomor KTP Wajib 16 Digit.", "error");
+                elKTP.focus();
+                return;
+            }
+
             document.getElementById('loadingOverlay').classList.add('active');
 
             const fd = new FormData(e.target);
@@ -583,6 +873,15 @@
         document.getElementById('btnResetForm').addEventListener('click', function() {
             document.getElementById('karyawanForm').reset();
             document.getElementById('pengalamanFields').classList.add('hidden');
+            
+            errNama.classList.add('hidden');
+            errKTP.classList.add('hidden');
+            errNamaDarurat.classList.add('hidden');
+            errTelpDarurat.classList.add('hidden');
+
+            elAnak.innerHTML = '<option value="">Pilih Status Dahulu</option>'; elAnak.disabled = true;
+            elAnak.classList.remove('bg-white'); elAnak.classList.add('bg-gray-100');
+
             elKabupaten.innerHTML = '<option value="">Pilih Kabupaten</option>'; elKabupaten.disabled = true;
             elKecamatan.innerHTML = '<option value="">Pilih Kecamatan</option>'; elKecamatan.disabled = true;
             elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>'; elKelurahan.disabled = true;
@@ -618,18 +917,15 @@
         document.getElementById('btnShareQR').addEventListener('click', () => toggleQR(true));
         document.getElementById('btnCloseQR').addEventListener('click', () => toggleQR(false));
 
-        // METODE FALLBACK UNTUK SALIN LINK (ANTI-ERROR IFRAME)
+        // METODE FALLBACK UNTUK SALIN LINK
         document.getElementById('btnCopyLink').addEventListener('click', function() {
             const url = window.location.href;
-            
-            // Buat elemen textarea rahasia
             const textArea = document.createElement("textarea");
             textArea.value = url;
             textArea.style.position = "fixed";
             textArea.style.left = "-9999px";
             document.body.appendChild(textArea);
             
-            // Pilih dan salin teks
             textArea.select();
             try {
                 document.execCommand('copy');
@@ -639,7 +935,6 @@
                 showToast('Gagal menyalin link.', 'error');
             }
             
-            // Hapus textarea setelah selesai
             document.body.removeChild(textArea);
         });
 
