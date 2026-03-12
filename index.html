@@ -5,10 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Formulir Karyawan Baru - PT Hop Lun Indonesia</title>
     
+    <!-- Favicon (Logo di Tab Browser) -->
     <link rel="icon" type="image/png" href="hoplun128.png">
+    
+    <!-- Tailwind CSS (Untuk Desain) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- SheetJS (Untuk Export Excel) -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+    <!-- AI Background Removal (Library Baru untuk Background Putih) -->
+    <script src="https://unpkg.com/@imgly/background-removal@1.4.3/dist/imgly-background-removal.iife.min.js"></script>
 
     <style>
         .fade-in { animation: fadeIn 0.5s ease-in-out; }
@@ -24,7 +34,8 @@
 
     <!-- Navbar -->
     <nav class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-20 shadow-sm">
-        <div class="flex items-center gap-3">
+        <!-- Header / Logo yang bisa diklik untuk Refresh -->
+        <div class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity" onclick="window.location.reload()" title="Klik untuk me-refresh halaman">
             <div class="p-0.5 rounded-lg shadow-sm border border-gray-100 bg-white">
                 <img src="hoplun128.png" alt="Logo Hop Lun" class="w-10 h-10 object-contain rounded-md" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                 <div class="w-10 h-10 bg-blue-600 rounded-md text-white items-center justify-center hidden">
@@ -58,8 +69,8 @@
                 </div>
                 <h2 class="text-2xl font-bold text-gray-800 mb-2">Data Berhasil Disimpan!</h2>
                 <p class="text-gray-600 mb-8">Terima kasih, data Anda telah masuk ke dalam sistem database perusahaan.</p>
-                <button id="btnResetForm" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors">
-                    Isi Data Baru
+                <button id="btnResetForm" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors shadow-md">
+                    <i data-lucide="refresh-cw" class="w-5 h-5 inline-block mr-1 -mt-1"></i> Isi Data Baru (Refresh)
                 </button>
             </div>
 
@@ -280,17 +291,24 @@
                             </div>
                         </div>
 
-                        <!-- Bagian Tambahan: Upload Pas Foto (Paling Bawah & Tidak Wajib) -->
+                        <!-- Bagian Tambahan: Upload Pas Foto -->
                         <div class="bg-blue-50 p-6 rounded-xl border border-blue-200">
                             <h2 class="text-lg font-bold text-blue-800 flex items-center gap-2 mb-4">
                                 <i data-lucide="camera" class="w-5 h-5 text-blue-600"></i> Pas Foto Resmi
                             </h2>
-                            <div class="space-y-2">
+                            <div class="space-y-3">
                                 <label class="text-sm font-medium text-gray-700">Pilih Foto dari Galeri atau Kamera <span class="text-gray-500 font-normal italic ml-1">(Tidak Wajib)</span></label>
                                 <input type="file" id="inputFoto" accept="image/*" capture="environment" class="w-full px-3 py-2.5 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
-                                <p class="text-xs text-gray-500">Foto akan dikompres secara otomatis oleh sistem.</p>
-                                <div id="fotoPreviewContainer" class="hidden mt-3 text-center sm:text-left">
-                                    <img id="fotoPreview" src="" class="w-32 h-32 object-cover rounded-lg border-2 border-blue-400 shadow-md mx-auto sm:mx-0" alt="Preview Foto">
+                                
+                                <div class="flex items-center gap-2 mt-2 bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
+                                    <input type="checkbox" id="autoWhiteBg" class="w-5 h-5 text-blue-600 rounded cursor-pointer" checked>
+                                    <label for="autoWhiteBg" class="text-sm text-gray-800 font-bold cursor-pointer">✨ Ubah Background Jadi Putih Otomatis (Proses AI)</label>
+                                </div>
+
+                                <p class="text-xs text-gray-500">Sistem akan mengkompres foto agar ukurannya tidak memberatkan database.</p>
+                                <div id="fotoPreviewContainer" class="hidden mt-4 text-center sm:text-left">
+                                    <p class="text-xs font-bold text-green-600 mb-2">Hasil Foto Terunggah:</p>
+                                    <img id="fotoPreview" src="" class="w-32 h-40 object-cover rounded-lg border-2 border-blue-400 shadow-md mx-auto sm:mx-0" alt="Preview Foto">
                                 </div>
                             </div>
                         </div>
@@ -442,13 +460,13 @@
     </div>
 
     <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] flex-col items-center justify-center">
-        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
-        <p class="text-lg font-bold text-gray-800 mb-2">Menyimpan Data...</p>
-        <p class="text-sm text-gray-700">Mohon tunggu, sedang memproses foto.</p>
+    <div id="loadingOverlay" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-[100] flex-col items-center justify-center text-center px-4">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4 mx-auto"></div>
+        <p id="loadingText" class="text-xl font-bold text-gray-800 mb-2">Menyimpan Data...</p>
+        <p id="loadingSubText" class="text-sm text-gray-700">Mohon tunggu sebentar.</p>
     </div>
 
-    <!-- Toast Notification -->
+    <!-- Toast Notification UI -->
     <div id="toast" class="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg transform transition-all duration-300 translate-y-20 opacity-0 z-[200] flex items-center gap-2">
         <i data-lucide="info" class="w-5 h-5"></i>
         <span id="toastMessage" class="font-medium">Pesan</span>
@@ -485,7 +503,7 @@
         };
 
         // ----------------------------------------------------
-        // UPLOAD FOTO BASE64 (COMPRESSION OTOMATIS)
+        // UPLOAD FOTO BASE64 & AI BACKGROUND REMOVAL
         // ----------------------------------------------------
         let fotoBase64Data = "";
         let fotoFileName = "";
@@ -493,44 +511,72 @@
         const fotoPreview = document.getElementById('fotoPreview');
         const fotoPreviewContainer = document.getElementById('fotoPreviewContainer');
 
-        inputFoto.addEventListener('change', function(e) {
+        inputFoto.addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if(!file) return;
             fotoFileName = file.name;
             
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const img = new Image();
-                img.onload = function() {
-                    // Kompresi ukuran gambar dengan Canvas agar tidak terlalu berat saat upload
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800; // maksimal lebar 800px
-                    let width = img.width;
-                    let height = img.height;
-                    
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
-                    
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    
-                    // Convert ke Base64 Format (Kualitas 70%)
-                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                    
-                    // Hapus format awalan ("data:image/jpeg;base64,") untuk mempermudah Google Script
-                    fotoBase64Data = compressedDataUrl.split(',')[1];
-                    
-                    // Tampilkan Preview
-                    fotoPreview.src = compressedDataUrl;
-                    fotoPreviewContainer.classList.remove('hidden');
+            const useAutoWhiteBg = document.getElementById('autoWhiteBg').checked;
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const loadingText = document.getElementById('loadingText');
+            const loadingSubText = document.getElementById('loadingSubText');
+
+            loadingOverlay.classList.add('active');
+            loadingText.textContent = useAutoWhiteBg ? "Memproses AI Background..." : "Memproses Foto...";
+            loadingSubText.textContent = useAutoWhiteBg ? "Sedang menghapus background asli dan mengubah jadi putih. Ini butuh beberapa detik..." : "Mengkompresi gambar...";
+
+            try {
+                let imageSource = file;
+
+                if (useAutoWhiteBg && typeof imglyRemoveBackground !== 'undefined') {
+                    imageSource = await imglyRemoveBackground(file, {
+                        publicPath: "https://unpkg.com/@imgly/background-removal@1.4.3/dist/"
+                    });
                 }
-                img.src = event.target.result;
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 600; 
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        
+                        fotoBase64Data = compressedDataUrl.split(',')[1];
+                        
+                        fotoPreview.src = compressedDataUrl;
+                        fotoPreviewContainer.classList.remove('hidden');
+                        
+                        loadingOverlay.classList.remove('active');
+                        showToast(useAutoWhiteBg ? "Background putih berhasil diterapkan!" : "Foto berhasil diproses!", "success");
+                    }
+                    img.src = event.target.result;
+                }
+                reader.readAsDataURL(imageSource);
+
+            } catch (err) {
+                console.error("BG Removal Error:", err);
+                loadingOverlay.classList.remove('active');
+                showToast("Gagal mengubah background otomatis. Silakan coba matikan centang AI Putih.", "error");
+                inputFoto.value = ""; 
             }
-            reader.readAsDataURL(file);
         });
 
         // ----------------------------------------------------
@@ -614,31 +660,28 @@
         elRT.addEventListener('blur', function() { checkRTRW(this); });
         elRW.addEventListener('blur', function() { checkRTRW(this); });
 
-        // Paksa semua field angka khusus selain NIK dan RT RW hanya jadi angka
         document.querySelectorAll('input[inputmode="numeric"]:not(#inputKTP):not(#inputRT):not(#inputRW)').forEach(el => {
             el.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); });
         });
 
-        // FOCUS TRAP KHUSUS PENGALAMAN GARMENT (Lama Berkerja)
         const elLamaAngka = document.getElementById('inputLamaAngka');
         const elLamaSatuan = document.getElementById('inputLamaSatuan');
         const errLama = document.getElementById('err-lama');
 
         elLamaAngka.addEventListener('blur', function(e) {
             if(document.getElementById('pengalamanGarment').value === 'YA') {
-                if (e.relatedTarget === elLamaSatuan) return; // Boleh pindah ke Satuan sebelahnya
+                if (e.relatedTarget === elLamaSatuan) return; 
                 if (this.value === '') { errLama.classList.remove('hidden'); setTimeout(() => this.focus(), 10); }
                 else { errLama.classList.add('hidden'); }
             }
         });
         elLamaSatuan.addEventListener('blur', function(e) {
             if(document.getElementById('pengalamanGarment').value === 'YA') {
-                if (e.relatedTarget === elLamaAngka) return; // Boleh pindah ke Angka sebelahnya
+                if (e.relatedTarget === elLamaAngka) return; 
                 if (this.value === '') { errLama.classList.remove('hidden'); setTimeout(() => this.focus(), 10); }
                 else { errLama.classList.add('hidden'); }
             }
         });
-
 
         function validasiKontakDarurat() {
             const namaLengkapVal = elNamaLengkap.value.toLowerCase().trim();
@@ -659,7 +702,7 @@
         elNoHP.addEventListener('input', validasiKontakDarurat);
 
         // ----------------------------------------------------
-        // STATUS PERNIKAHAN & JUMLAH ANAK (LOGIKA DINAMIS)
+        // STATUS PERNIKAHAN & JUMLAH ANAK
         // ----------------------------------------------------
         const elStatus = document.getElementById('statusPernikahan');
         const elAnak = document.getElementById('jumlahAnak');
@@ -702,13 +745,11 @@
                 elAnak.innerHTML = '<option value="">Pilih Status Dahulu</option>';
             }
 
-            // Atur Visibilitas Pasangan (Suami,Istri,Mertua)
             if (status === 'MARRIED') {
                 pasanganContainer.classList.remove('hidden');
             }
         });
 
-        // Trigger untuk memunculkan kolom anak berdasar valuenya
         elAnak.addEventListener('change', function() {
             const val = this.value;
             if (val === 'K0' || val === 'TK0' || val === '') {
@@ -780,7 +821,6 @@
             }
         });
 
-        // Fitur Ganti Password
         const changePwdModal = document.getElementById('changePwdModal');
         const changePwdForm = document.getElementById('changePwdForm');
         document.getElementById('btnOpenChangePwd').addEventListener('click', () => {
@@ -829,7 +869,7 @@
         initAuthData();
 
         // ----------------------------------------------------
-        // API WILAYAH (EMSIFA) - SORT ASCENDING (A-Z)
+        // API WILAYAH (EMSIFA)
         // ----------------------------------------------------
         const elProvinsi = document.getElementById('provinsi');
         const elKabupaten = document.getElementById('kabupaten');
@@ -916,34 +956,33 @@
         document.getElementById('karyawanForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // Pengecekan akhir khusus KTP dan Email
             if(elKTP.value.length !== 16) { showToast("Pengisian Gagal! Nomor KTP Wajib 16 Digit.", "error"); elKTP.focus(); return; }
             if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(elEmail.value) && elEmail.value !== "") { showToast("Format Email Tidak Valid!", "error"); elEmail.focus(); return; }
 
-            // Pengecekan Khusus Lama Bekerja
             if(document.getElementById('pengalamanGarment').value === 'YA') {
                 if(elLamaAngka.value === '' || elLamaSatuan.value === '') {
                     errLama.classList.remove('hidden'); showToast("Lengkap data lama bekerja!", "error"); elLamaAngka.focus(); return;
                 }
             }
 
-            document.getElementById('loadingOverlay').classList.add('active');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            document.getElementById('loadingText').textContent = "Menyimpan Data...";
+            document.getElementById('loadingSubText').textContent = "Mohon tunggu, mengirim data ke server...";
+            loadingOverlay.classList.add('active');
+
             const fd = new FormData(e.target);
             const dataObj = Object.fromEntries(fd.entries());
             dataObj.waktu = new Date().toLocaleString('id-ID');
 
-            // Penggabungan Lama Bekerja
             if(document.getElementById('pengalamanGarment').value === 'YA') {
                 dataObj.lamaBekerja = `${dataObj.lamaBekerjaAngka} ${dataObj.lamaBekerjaSatuan}`.toUpperCase();
             } else {
                 dataObj.lamaBekerja = "";
             }
 
-            // Tambahkan Base64 Foto
             dataObj.fotoBase64 = fotoBase64Data;
             dataObj.fotoName = fotoFileName;
 
-            // Penggabungan Alamat Lengkap
             let textKab = dataObj.kabupaten || ""; textKab = textKab.replace(/^KABUPATEN\s+/i, '');
             let prefixKab = (dataObj.kabupaten || "").toUpperCase().startsWith('KOTA') ? '' : 'KAB ';
             dataObj.alamatLengkap = `${dataObj.alamatDesa} RT${dataObj.rt} RW${dataObj.rw} KEL ${dataObj.kelurahan} KEC ${dataObj.kecamatan} ${prefixKab}${textKab}`.toUpperCase();
@@ -1022,48 +1061,16 @@
             `).join('');
         }
 
-        // RESET FORM
+        // ==================================================
+        // REFRESH & RESET (DIUBAH JADI FULL PAGE RELOAD)
+        // ==================================================
         document.getElementById('btnResetForm').addEventListener('click', function() {
-            document.getElementById('karyawanForm').reset();
-            document.getElementById('pengalamanFields').classList.add('hidden');
-            
-            errNama.classList.add('hidden'); errKTP.classList.add('hidden');
-            errNamaDarurat.classList.add('hidden'); errTelpDarurat.classList.add('hidden');
-            errEmail.classList.add('hidden'); errLama.classList.add('hidden');
-
-            fotoPreviewContainer.classList.add('hidden');
-            fotoPreview.src = ""; fotoBase64Data = ""; fotoFileName = "";
-
-            resetStatusAnak();
-
-            elKabupaten.innerHTML = '<option value="">Pilih Kabupaten</option>'; elKabupaten.disabled = true;
-            elKecamatan.innerHTML = '<option value="">Pilih Kecamatan</option>'; elKecamatan.disabled = true;
-            elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>'; elKelurahan.disabled = true;
-            
-            document.getElementById('successMessage').classList.add('hidden');
-            document.getElementById('formContainer').classList.remove('hidden');
+            window.location.reload();
         });
 
         document.getElementById('btnClearForm').addEventListener('click', function() {
             if(confirm("Apakah Anda yakin ingin menghapus semua isian data form ini?")) {
-                document.getElementById('karyawanForm').reset();
-                document.getElementById('pengalamanFields').classList.add('hidden');
-                
-                errNama.classList.add('hidden'); errKTP.classList.add('hidden');
-                errNamaDarurat.classList.add('hidden'); errTelpDarurat.classList.add('hidden');
-                errEmail.classList.add('hidden'); errLama.classList.add('hidden');
-
-                fotoPreviewContainer.classList.add('hidden');
-                fotoPreview.src = ""; fotoBase64Data = ""; fotoFileName = "";
-
-                resetStatusAnak();
-
-                elKabupaten.innerHTML = '<option value="">Pilih Kabupaten</option>'; elKabupaten.disabled = true;
-                elKecamatan.innerHTML = '<option value="">Pilih Kecamatan</option>'; elKecamatan.disabled = true;
-                elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>'; elKelurahan.disabled = true;
-                
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-                showToast("Formulir telah dibersihkan", "success");
+                window.location.reload();
             }
         });
 
