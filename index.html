@@ -333,14 +333,44 @@
                         <tr>
                             <th class="px-6 py-4 font-semibold">Waktu Submit</th>
                             <th class="px-6 py-4 font-semibold">Nama Lengkap</th>
-                            <th class="px-6 py-4 font-semibold">NIK KTP</th>
-                            <th class="px-6 py-4 font-semibold">Pengalaman?</th>
-                            <th class="px-6 py-4 font-semibold">Perusahaan Lm</th>
-                            <th class="px-6 py-4 font-semibold">No HP</th>
+                            <th class="px-6 py-4 font-semibold">Pengalaman Garment</th>
+                            <th class="px-6 py-4 font-semibold">Nama Perusahaan</th>
+                            <th class="px-6 py-4 font-semibold">Bagian</th>
+                            <th class="px-6 py-4 font-semibold">Lama Bekerja</th>
+                            <th class="px-6 py-4 font-semibold">Jenis Kelamin</th>
+                            <th class="px-6 py-4 font-semibold">Tempat Lahir</th>
+                            <th class="px-6 py-4 font-semibold">Tanggal Lahir</th>
+                            <th class="px-6 py-4 font-semibold">Status Pernikahan</th>
+                            <th class="px-6 py-4 font-semibold">Jumlah Anak</th>
+                            <th class="px-6 py-4 font-semibold">Agama</th>
+                            <th class="px-6 py-4 font-semibold">Alamat Email</th>
+                            <th class="px-6 py-4 font-semibold">No Handphone</th>
+                            <th class="px-6 py-4 font-semibold">Nomor KTP</th>
+                            <th class="px-6 py-4 font-semibold">Provinsi</th>
+                            <th class="px-6 py-4 font-semibold">Kabupaten</th>
+                            <th class="px-6 py-4 font-semibold">Kecamatan</th>
+                            <th class="px-6 py-4 font-semibold">Kelurahan</th>
+                            <th class="px-6 py-4 font-semibold">RT</th>
+                            <th class="px-6 py-4 font-semibold">RW</th>
+                            <th class="px-6 py-4 font-semibold">Desa/Dukuh/Jalan</th>
+                            <th class="px-6 py-4 font-semibold">Pendidikan Terakhir</th>
+                            <th class="px-6 py-4 font-semibold">Jurusan Sekolah</th>
+                            <th class="px-6 py-4 font-semibold">Nama Ibu Kandung</th>
+                            <th class="px-6 py-4 font-semibold">Nama Ayah Kandung</th>
+                            <th class="px-6 py-4 font-semibold">Nama Suami/Istri</th>
+                            <th class="px-6 py-4 font-semibold">Nama Ibu Mertua</th>
+                            <th class="px-6 py-4 font-semibold">Nama Ayah Mertua</th>
+                            <th class="px-6 py-4 font-semibold">Nama Anak Pertama</th>
+                            <th class="px-6 py-4 font-semibold">Nama Anak Kedua</th>
+                            <th class="px-6 py-4 font-semibold">Nama Anak Ketiga</th>
+                            <th class="px-6 py-4 font-semibold">Nama Kontak Darurat</th>
+                            <th class="px-6 py-4 font-semibold">No Telp Darurat</th>
+                            <th class="px-6 py-4 font-semibold">Hubungan</th>
+                            <th class="px-6 py-4 font-semibold">Alamat Lengkap</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody" class="divide-y divide-gray-200 bg-white">
-                        <tr><td colspan="6" class="px-6 py-12 text-center text-gray-500">Memuat data / Belum ada data...</td></tr>
+                        <tr><td colspan="36" class="px-6 py-12 text-center text-gray-500">Memuat data / Belum ada data...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -840,6 +870,17 @@
             const dataObj = Object.fromEntries(fd.entries());
             dataObj.waktu = new Date().toLocaleString('id-ID');
 
+            // --- PENGGABUNGAN ALAMAT LENGKAP ---
+            // Bersihkan tulisan "KABUPATEN " dari nama kabupaten agar tidak dobel
+            let textKab = dataObj.kabupaten || "";
+            textKab = textKab.replace(/^KABUPATEN\s+/i, '');
+            // Jika diawali KOTA, maka awalan kosong. Jika bukan kota, kasih awalan KAB.
+            let prefixKab = (dataObj.kabupaten || "").toUpperCase().startsWith('KOTA') ? '' : 'KAB ';
+            
+            // Format: [Alamat] RT[RT] RW[RW] KEL [Kelurahan] KEC [Kecamatan] KAB/KOTA [Kabupaten]
+            dataObj.alamatLengkap = `${dataObj.alamatDesa} RT${dataObj.rt} RW${dataObj.rw} KEL ${dataObj.kelurahan} KEC ${dataObj.kecamatan} ${prefixKab}${textKab}`.toUpperCase();
+
+
             try {
                 if (db && auth && auth.currentUser) {
                     await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), {
@@ -869,16 +910,46 @@
         function renderTable() {
             const tbody = document.getElementById('tableBody');
             if(globalEmployees.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-12 text-center text-gray-500">Belum ada data karyawan.</td></tr>`; return;
+                tbody.innerHTML = `<tr><td colspan="36" class="px-6 py-12 text-center text-gray-500">Belum ada data karyawan.</td></tr>`; return;
             }
             tbody.innerHTML = globalEmployees.map(emp => `
                 <tr class="hover:bg-blue-50 transition-colors">
                     <td class="px-6 py-4 text-xs text-gray-500">${emp.waktu || (emp.timestamp ? new Date(emp.timestamp.toDate()).toLocaleString('id-ID') : '-')}</td>
                     <td class="px-6 py-4 font-medium">${emp.namaLengkap || '-'}</td>
-                    <td class="px-6 py-4">${emp.nomorKTP || '-'}</td>
                     <td class="px-6 py-4">${emp.pengalamanGarment || '-'}</td>
                     <td class="px-6 py-4">${emp.namaPerusahaan || '-'}</td>
+                    <td class="px-6 py-4">${emp.bagian || '-'}</td>
+                    <td class="px-6 py-4">${emp.lamaBekerja || '-'}</td>
+                    <td class="px-6 py-4">${emp.jenisKelamin || '-'}</td>
+                    <td class="px-6 py-4">${emp.tempatLahir || '-'}</td>
+                    <td class="px-6 py-4">${emp.tanggalLahir || '-'}</td>
+                    <td class="px-6 py-4">${emp.statusPernikahan || '-'}</td>
+                    <td class="px-6 py-4">${emp.jumlahAnak || '-'}</td>
+                    <td class="px-6 py-4">${emp.agama || '-'}</td>
+                    <td class="px-6 py-4">${emp.alamatEmail || '-'}</td>
                     <td class="px-6 py-4">${emp.noHandphone || '-'}</td>
+                    <td class="px-6 py-4">${emp.nomorKTP || '-'}</td>
+                    <td class="px-6 py-4">${emp.provinsi || '-'}</td>
+                    <td class="px-6 py-4">${emp.kabupaten || '-'}</td>
+                    <td class="px-6 py-4">${emp.kecamatan || '-'}</td>
+                    <td class="px-6 py-4">${emp.kelurahan || '-'}</td>
+                    <td class="px-6 py-4">${emp.rt || '-'}</td>
+                    <td class="px-6 py-4">${emp.rw || '-'}</td>
+                    <td class="px-6 py-4">${emp.alamatDesa || '-'}</td>
+                    <td class="px-6 py-4">${emp.pendidikanTerakhir || '-'}</td>
+                    <td class="px-6 py-4">${emp.jurusanSekolah || '-'}</td>
+                    <td class="px-6 py-4">${emp.namaIbuKandung || '-'}</td>
+                    <td class="px-6 py-4">${emp.namaAyahKandung || '-'}</td>
+                    <td class="px-6 py-4">${emp.namaSuamiIstri || '-'}</td>
+                    <td class="px-6 py-4">${emp.namaIbuMertua || '-'}</td>
+                    <td class="px-6 py-4">${emp.namaAyahMertua || '-'}</td>
+                    <td class="px-6 py-4">${emp.namaAnak1 || '-'}</td>
+                    <td class="px-6 py-4">${emp.namaAnak2 || '-'}</td>
+                    <td class="px-6 py-4">${emp.namaAnak3 || '-'}</td>
+                    <td class="px-6 py-4">${emp.namaKontakDarurat || '-'}</td>
+                    <td class="px-6 py-4">${emp.noTelpDarurat || '-'}</td>
+                    <td class="px-6 py-4">${emp.hubungan || '-'}</td>
+                    <td class="px-6 py-4">${emp.alamatLengkap || '-'}</td>
                 </tr>
             `).join('');
         }
@@ -988,7 +1059,8 @@
                 'Nama Anak Ketiga': emp.namaAnak3 || '',
                 'Nama Kontak Darurat': emp.namaKontakDarurat || '', 'No telp kontak darurat': emp.noTelpDarurat || '',
                 'Hubungan': emp.hubungan || '',
-                'Waktu Pengisian': emp.waktu || (emp.timestamp ? new Date(emp.timestamp.toDate()).toLocaleString('id-ID') : '-')
+                'Waktu Pengisian': emp.waktu || (emp.timestamp ? new Date(emp.timestamp.toDate()).toLocaleString('id-ID') : '-'),
+                'Alamat Lengkap (Gabungan)': emp.alamatLengkap || ''
             }));
 
             const worksheet = XLSX.utils.json_to_sheet(formattedData);
