@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulir Karyawan Baru - PT Hop Lun Indonesia</title>
+    
+    <!-- Tailwind CSS (Untuk Desain) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- SheetJS (Untuk Export Excel) -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        /* Animasi Sederhana */
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Loading Overlay */
+        #loadingOverlay { display: none; }
+        #loadingOverlay.active { display: flex; }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-900 flex flex-col min-h-screen overflow-x-hidden">
+
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-20 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 p-2.5 rounded-lg shadow-sm text-white">
+                <i data-lucide="users" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-xl tracking-tight text-gray-800 leading-none">HR<span class="text-blue-600">Portal</span></h1>
+                <p class="text-xs text-gray-500 mt-1">Sistem Pendataan Karyawan</p>
+            </div>
+        </div>
+        
+        <!-- Toggle View -->
+        <div class="flex bg-gray-100 p-1 rounded-lg">
+            <button id="btnViewForm" class="px-4 py-1.5 rounded-md text-sm font-medium transition-colors bg-white shadow-sm text-blue-600">
+                Formulir Isi
+            </button>
+            <button id="btnViewAdmin" class="px-4 py-1.5 rounded-md text-sm font-medium transition-colors text-gray-500 hover:text-gray-700">
+                Database Admin
+            </button>
+        </div>
+    </nav>
+
+    <main class="flex-1 p-4 md:p-6">
+        
+        <!-- ======================= -->
+        <!-- VIEW 1: FORMULIR ISIAN -->
+        <!-- ======================= -->
+        <div id="viewForm" class="fade-in max-w-4xl w-full mx-auto my-4">
+            
+            <!-- Notifikasi Sukses -->
+            <div id="successMessage" class="hidden bg-white rounded-2xl shadow-xl p-8 text-center border border-green-100 mb-8 fade-in">
+                <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-600">
+                    <i data-lucide="check-circle-2" class="w-10 h-10"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Data Berhasil Disimpan!</h2>
+                <p class="text-gray-600 mb-8">Terima kasih, data Anda telah masuk ke dalam sistem database perusahaan.</p>
+                <button id="btnResetForm" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors">
+                    Isi Data Baru
+                </button>
+            </div>
+
+            <!-- Formulir Utama -->
+            <div id="formContainer" class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+                <div class="bg-blue-600 h-3 w-full"></div>
+                <div class="p-6 md:p-10">
+                    <div class="mb-8 border-b border-gray-100 pb-6 text-center md:text-left">
+                        <h1 class="text-3xl font-bold text-gray-800 mb-2">Formulir Data Karyawan PT Hop Lun Indonesia</h1>
+                        <p class="text-red-600 font-bold text-lg mt-1">Data WAJIB diisi sesuai dengan KTP</p>
+                    </div>
+
+                    <form id="karyawanForm" class="space-y-10">
+                        
+                        <!-- Bagian 1: Data Pribadi -->
+                        <div class="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                                <i data-lucide="users" class="w-5 h-5 text-blue-600"></i> Data Pribadi
+                            </h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Lengkap <span class="text-red-500">*</span></label>
+                                    <input required type="text" name="namaLengkap" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Sesuai KTP"></div>
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nomor KTP <span class="text-red-500">*</span></label>
+                                    <input required type="number" name="nomorKTP" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="16 Digit NIK"></div>
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Jenis Kelamin <span class="text-red-500">*</span></label>
+                                    <select required name="jenisKelamin" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none">
+                                        <option value="">Pilih Jenis Kelamin</option>
+                                        <option value="MALE (Laki-laki)">MALE (Laki-laki)</option>
+                                        <option value="FEMALE (Perempuan)">FEMALE (Perempuan)</option>
+                                    </select></div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Tempat Lahir <span class="text-red-500">*</span></label>
+                                        <input required type="text" name="tempatLahir" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"></div>
+                                    <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Tanggal Lahir <span class="text-red-500">*</span></label>
+                                        <input required type="date" name="tanggalLahir" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"></div>
+                                </div>
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Agama <span class="text-red-500">*</span></label>
+                                    <select required name="agama" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none">
+                                        <option value="">Pilih Agama</option>
+                                        <option value="Islam">Islam</option>
+                                        <option value="Christianity">Christianity (Kristen)</option>
+                                        <option value="Catholic">Catholic (Katolik)</option>
+                                        <option value="Hinduism">Hinduism (Hindu)</option>
+                                        <option value="Buddhism">Buddhism (Buddha)</option>
+                                        <option value="Konghucu">Konghucu</option>
+                                    </select></div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Status Pernikahan <span class="text-red-500">*</span></label>
+                                        <select required name="statusPernikahan" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none">
+                                            <option value="">Pilih</option>
+                                            <option value="SINGLE">SINGLE</option>
+                                            <option value="MARRIED">MARRIED</option>
+                                            <option value="WIDOW">WIDOW (Janda/Duda)</option>
+                                        </select></div>
+                                    <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Jumlah Anak <span class="text-red-500">*</span></label>
+                                        <select required name="jumlahAnak" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none">
+                                            <option value="">Pilih</option>
+                                            <option value="TK0">TK0 (Tidak ada)</option>
+                                            <option value="K1">K1 (1 Anak)</option>
+                                            <option value="K2">K2 (2 Anak)</option>
+                                            <option value="K3">K3 (3 Anak)</option>
+                                            <option value="Lebih dari 3">Lebih dari 3</option>
+                                        </select></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bagian 2: Kontak & Domisili -->
+                        <div class="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                                <i data-lucide="map-pin" class="w-5 h-5 text-blue-600"></i> Kontak & Domisili
+                            </h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">No Handphone Aktif <span class="text-red-500">*</span></label>
+                                    <input required type="tel" name="noHandphone" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="08xxxx"></div>
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Alamat Email</label>
+                                    <input type="email" name="alamatEmail" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="email@contoh.com"></div>
+                                
+                                <!-- Wilayah API -->
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Provinsi <span class="text-red-500">*</span></label>
+                                    <select required id="provinsi" name="provinsi" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none">
+                                        <option value="" data-id="">Pilih Provinsi</option>
+                                    </select></div>
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Kabupaten/Kota <span class="text-red-500">*</span></label>
+                                    <select required id="kabupaten" name="kabupaten" disabled class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none disabled:bg-gray-100 disabled:text-gray-400">
+                                        <option value="" data-id="">Pilih Kabupaten</option>
+                                    </select></div>
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Kecamatan <span class="text-red-500">*</span></label>
+                                    <select required id="kecamatan" name="kecamatan" disabled class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none disabled:bg-gray-100 disabled:text-gray-400">
+                                        <option value="" data-id="">Pilih Kecamatan</option>
+                                    </select></div>
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Kelurahan <span class="text-red-500">*</span></label>
+                                    <select required id="kelurahan" name="kelurahan" disabled class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none disabled:bg-gray-100 disabled:text-gray-400">
+                                        <option value="">Pilih Kelurahan</option>
+                                    </select></div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">RT (2 digit) <span class="text-red-500">*</span></label>
+                                        <input required type="number" name="rt" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none" placeholder="01"></div>
+                                    <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">RW (2 digit) <span class="text-red-500">*</span></label>
+                                        <input required type="number" name="rw" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none" placeholder="02"></div>
+                                </div>
+                                <div class="md:col-span-2 space-y-1.5"><label class="text-sm font-medium text-gray-700">Alamat (Desa/Dukuh/Jalan) <span class="text-red-500">*</span></label>
+                                    <textarea required name="alamatDesa" rows="2" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none" placeholder="Patokan rumah..."></textarea></div>
+                            </div>
+                        </div>
+
+                        <!-- Bagian 3: Pendidikan & Pengalaman -->
+                        <div class="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                                <i data-lucide="graduation-cap" class="w-5 h-5 text-blue-600"></i> Pendidikan & Pengalaman
+                            </h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Pendidikan Terakhir <span class="text-red-500">*</span></label>
+                                    <select required name="pendidikanTerakhir" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none">
+                                        <option value="">Pilih Pendidikan</option>
+                                        <option value="SD">SD</option><option value="SMP">SMP</option>
+                                        <option value="SMA/SMK">SMA/SMK</option><option value="D1">D1</option>
+                                        <option value="D2">D2</option><option value="D3">D3</option><option value="D4/S1">D4/S1</option>
+                                    </select></div>
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Jurusan Sekolah</label>
+                                    <input type="text" name="jurusanSekolah" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none" placeholder="Isi untuk SMA keatas"></div>
+                                
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Pengalaman Garment? <span class="text-red-500">*</span></label>
+                                    <select required id="pengalamanGarment" name="pengalamanGarment" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none">
+                                        <option value="">Pilih</option>
+                                        <option value="YA">YA</option>
+                                        <option value="TIDAK">TIDAK</option>
+                                    </select></div>
+                                
+                                <!-- Hidden Fields if Pengalaman = YA -->
+                                <div id="pengalamanFields" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white p-4 rounded-lg border border-gray-200 mt-2">
+                                    <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Perusahaan</label>
+                                        <input type="text" name="namaPerusahaan" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none"></div>
+                                    <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Bagian / Posisi</label>
+                                        <input type="text" name="bagian" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none"></div>
+                                    <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Lama Bekerja</label>
+                                        <input type="text" name="lamaBekerja" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none" placeholder="Cth: 2 Tahun 3 Bulan"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bagian 4: Data Keluarga -->
+                        <div class="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                                <i data-lucide="heart" class="w-5 h-5 text-blue-600"></i> Data Keluarga
+                            </h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Ibu Kandung <span class="text-red-500">*</span></label>
+                                    <input required type="text" name="namaIbuKandung" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none"></div>
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Ayah Kandung <span class="text-red-500">*</span></label>
+                                    <input required type="text" name="namaAyahKandung" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none"></div>
+
+                                <div class="md:col-span-2 border-t border-gray-200 my-2 pt-4"><p class="text-sm text-gray-500 mb-3 italic">Wajib diisi jika sudah menikah/punya anak:</p></div>
+
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Suami / Istri</label>
+                                    <input type="text" name="namaSuamiIstri" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none"></div>
+                                <div class="hidden md:block"></div>
+                                
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Ibu Mertua</label>
+                                    <input type="text" name="namaIbuMertua" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none"></div>
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Ayah Mertua</label>
+                                    <input type="text" name="namaAyahMertua" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none"></div>
+
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Anak Pertama</label>
+                                    <input type="text" name="namaAnak1" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none"></div>
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Anak Kedua</label>
+                                    <input type="text" name="namaAnak2" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none"></div>
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Anak Ketiga</label>
+                                    <input type="text" name="namaAnak3" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none"></div>
+                            </div>
+                        </div>
+
+                        <!-- Bagian 5: Kontak Darurat -->
+                        <div class="bg-red-50 p-6 rounded-xl border border-red-100">
+                            <h2 class="text-lg font-bold text-red-800 flex items-center gap-2 mb-4">
+                                <i data-lucide="alert-circle" class="w-5 h-5 text-red-600"></i> Kontak Darurat
+                            </h2>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Kontak <span class="text-red-500">*</span></label>
+                                    <input required type="text" name="namaKontakDarurat" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none"></div>
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">No Telp / WA <span class="text-red-500">*</span></label>
+                                    <input required type="tel" name="noTelpDarurat" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none"></div>
+                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Hubungan <span class="text-red-500">*</span></label>
+                                    <input required type="text" name="hubungan" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none" placeholder="Cth: Suami/Istri/Ortu"></div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-gray-200">
+                            <button type="submit" id="btnSubmit" class="w-full md:w-auto md:min-w-[300px] float-right py-4 px-8 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg transition-all shadow-lg hover:shadow-xl hover:-translate-y-1">
+                                Kirim Data Karyawan
+                            </button>
+                            <div class="clear-both"></div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================= -->
+        <!-- VIEW 2: DATABASE ADMIN  -->
+        <!-- ======================= -->
+        <div id="viewAdmin" class="hidden fade-in bg-white rounded-2xl shadow-xl overflow-hidden w-full mx-auto border border-gray-100 flex-col h-[85vh] my-4">
+            <div class="bg-slate-800 p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-white">
+                <div>
+                    <h1 class="text-2xl font-bold flex items-center gap-2">
+                        <i data-lucide="table-properties" class="w-6 h-6 text-blue-400"></i> Database Karyawan Baru
+                    </h1>
+                    <p class="text-slate-400 text-sm mt-1">Gunakan "Export Excel" untuk mengunduh seluruh data dalam format .xlsx</p>
+                </div>
+                <div class="flex gap-3">
+                    <button id="btnShareQR" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg flex items-center gap-2 transition-colors text-sm font-medium">
+                        <i data-lucide="qr-code" class="w-4 h-4"></i> Share QR
+                    </button>
+                    <button id="btnExportExcel" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg flex items-center gap-2 transition-colors text-sm font-medium shadow-md">
+                        <i data-lucide="download" class="w-4 h-4"></i> Export Excel
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-auto p-0 bg-gray-50">
+                <table class="w-full text-left text-sm whitespace-nowrap min-w-max">
+                    <thead class="bg-slate-100 text-slate-700 sticky top-0 z-10 shadow-sm border-b border-gray-200">
+                        <tr>
+                            <th class="px-6 py-4 font-semibold">Waktu Submit</th>
+                            <th class="px-6 py-4 font-semibold">Nama Lengkap</th>
+                            <th class="px-6 py-4 font-semibold">NIK KTP</th>
+                            <th class="px-6 py-4 font-semibold">Pengalaman?</th>
+                            <th class="px-6 py-4 font-semibold">Perusahaan Lm</th>
+                            <th class="px-6 py-4 font-semibold">No HP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-gray-200 bg-white">
+                        <tr><td colspan="6" class="px-6 py-12 text-center text-gray-500">Memuat data / Belum ada data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal QR Code -->
+    <div id="qrModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center relative">
+            <button id="btnCloseQR" class="absolute right-4 top-4 text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full p-1">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h3 class="text-xl font-bold mb-2">Scan Barcode Ini</h3>
+            <p class="text-gray-500 text-sm mb-4">Minta karyawan baru scan barcode ini untuk mengisi form.</p>
+            <div class="bg-white p-4 rounded-xl border-2 border-dashed border-gray-200 inline-block mb-6 shadow-sm w-full">
+                <img id="qrImage" src="" alt="QR Code" class="w-48 h-48 mx-auto" />
+                <div id="qrWarning" class="hidden text-red-600 text-sm font-bold p-3 bg-red-50 rounded border border-red-200 text-left">
+                    ⚠️ ERROR: Anda sedang membuka file secara Offline (Local). Barcode tidak akan berfungsi dan tidak bisa di-scan HP sebelum file HTML ini di-upload ke Hosting/Internet.
+                </div>
+            </div>
+            <button id="btnCopyLink" class="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium rounded-xl transition-colors text-sm flex justify-center items-center gap-2">
+                <i data-lucide="file-text" class="w-4 h-4"></i> Salin Link Manual
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] flex-col items-center justify-center">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
+        <p class="text-lg font-bold text-gray-800">Menyimpan Data...</p>
+    </div>
+
+    <!-- Toast Notification UI -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg transform transition-all duration-300 translate-y-20 opacity-0 z-[200] flex items-center gap-2">
+        <i data-lucide="info" class="w-5 h-5"></i>
+        <span id="toastMessage" class="font-medium">Pesan</span>
+    </div>
+
+    <!-- SCRIPT UTAMA (LOGIKA APLIKASI) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Konfigurasi Link Google Apps Script Anda
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-q_FMoXKG2nyX16EHg6x3QWEL7bMWzWtSopMlM5wWWVhdg0cyyCeBfr2e5LmXxYV5fA/exec";
+
+        let app, auth, db, appId;
+        let globalEmployees = [];
+
+        lucide.createIcons();
+
+        // ----------------------------------------------------
+        // SISTEM TOAST NOTIFICATION (PENGGANTI ALERT)
+        // ----------------------------------------------------
+        window.showToast = function(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMessage');
+            toastMsg.textContent = message;
+            
+            if(type === 'error') {
+                toast.classList.remove('bg-green-600');
+                toast.classList.add('bg-red-600');
+            } else {
+                toast.classList.remove('bg-red-600');
+                toast.classList.add('bg-green-600');
+            }
+            
+            // Munculkan toast
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            // Hilangkan setelah 3 detik
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        };
+
+        // Navigasi Tabs
+        const btnViewForm = document.getElementById('btnViewForm');
+        const btnViewAdmin = document.getElementById('btnViewAdmin');
+        const viewForm = document.getElementById('viewForm');
+        const viewAdmin = document.getElementById('viewAdmin');
+
+        btnViewForm.addEventListener('click', () => {
+            viewForm.style.display = 'block'; viewAdmin.style.display = 'none';
+            btnViewForm.classList.add('bg-white', 'shadow-sm', 'text-blue-600'); btnViewForm.classList.remove('text-gray-500');
+            btnViewAdmin.classList.remove('bg-white', 'shadow-sm', 'text-blue-600'); btnViewAdmin.classList.add('text-gray-500');
+        });
+
+        btnViewAdmin.addEventListener('click', () => {
+            viewForm.style.display = 'none'; viewAdmin.style.display = 'flex';
+            btnViewAdmin.classList.add('bg-white', 'shadow-sm', 'text-blue-600'); btnViewAdmin.classList.remove('text-gray-500');
+            btnViewForm.classList.remove('bg-white', 'shadow-sm', 'text-blue-600'); btnViewForm.classList.add('text-gray-500');
+        });
+
+        // Tampilkan/Sembunyikan Kolom Pengalaman Garment
+        document.getElementById('pengalamanGarment').addEventListener('change', function() {
+            const fields = document.getElementById('pengalamanFields');
+            if (this.value === 'YA') fields.classList.remove('hidden');
+            else fields.classList.add('hidden');
+        });
+
+        // ----------------------------------------------------
+        // INISIALISASI FIREBASE
+        // ----------------------------------------------------
+        const initAuth = async () => {
+            try {
+                const fbConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { projectId: "demo-app" };
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'karyawan-app-demo';
+                app = initializeApp(fbConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user && db) {
+                        const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'employees'));
+                        onSnapshot(q, (snapshot) => {
+                            globalEmployees = snapshot.docs.map(doc => doc.data());
+                            globalEmployees.sort((a,b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+                            renderTable();
+                        }, (error) => console.error("Snapshot error:", error));
+                    }
+                });
+
+            } catch(e) { 
+                console.log("Sistem berjalan tanpa Firebase lokal (Mode Google Script Saja)", e); 
+            }
+        };
+
+        initAuth();
+
+        // ----------------------------------------------------
+        // API WILAYAH (EMSIFA) - Provinsi -> Kelurahan
+        // ----------------------------------------------------
+        const elProvinsi = document.getElementById('provinsi');
+        const elKabupaten = document.getElementById('kabupaten');
+        const elKecamatan = document.getElementById('kecamatan');
+        const elKelurahan = document.getElementById('kelurahan');
+
+        fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
+            .then(res => res.json())
+            .then(data => {
+                data.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
+                    elProvinsi.appendChild(opt);
+                });
+            });
+
+        elProvinsi.addEventListener('change', function() {
+            const id = this.options[this.selectedIndex].dataset.id;
+            elKabupaten.innerHTML = '<option value="">Pilih Kabupaten</option>';
+            elKecamatan.innerHTML = '<option value="">Pilih Kecamatan</option>';
+            elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>';
+            elKabupaten.disabled = true; elKecamatan.disabled = true; elKelurahan.disabled = true;
+
+            if (id) {
+                fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${id}.json`)
+                .then(res => res.json())
+                .then(data => {
+                    data.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
+                        elKabupaten.appendChild(opt);
+                    });
+                    elKabupaten.disabled = false;
+                });
+            }
+        });
+
+        elKabupaten.addEventListener('change', function() {
+            const id = this.options[this.selectedIndex].dataset.id;
+            elKecamatan.innerHTML = '<option value="">Pilih Kecamatan</option>';
+            elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>';
+            elKecamatan.disabled = true; elKelurahan.disabled = true;
+
+            if (id) {
+                fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${id}.json`)
+                .then(res => res.json())
+                .then(data => {
+                    data.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
+                        elKecamatan.appendChild(opt);
+                    });
+                    elKecamatan.disabled = false;
+                });
+            }
+        });
+
+        elKecamatan.addEventListener('change', function() {
+            const id = this.options[this.selectedIndex].dataset.id;
+            elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>';
+            elKelurahan.disabled = true;
+
+            if (id) {
+                fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${id}.json`)
+                .then(res => res.json())
+                .then(data => {
+                    data.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
+                        elKelurahan.appendChild(opt);
+                    });
+                    elKelurahan.disabled = false;
+                });
+            }
+        });
+
+        // ----------------------------------------------------
+        // LOGIKA SUBMIT FORM
+        // ----------------------------------------------------
+        document.getElementById('karyawanForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            document.getElementById('loadingOverlay').classList.add('active');
+
+            const fd = new FormData(e.target);
+            const dataObj = Object.fromEntries(fd.entries());
+            dataObj.waktu = new Date().toLocaleString('id-ID');
+
+            try {
+                // 1. Simpan ke Firebase Internal
+                if (db && auth && auth.currentUser) {
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), {
+                        ...dataObj, timestamp: serverTimestamp()
+                    });
+                } else {
+                    globalEmployees.unshift(dataObj);
+                    renderTable();
+                }
+
+                // 2. Kirim ke Google Spreadsheet
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(dataObj)
+                });
+
+                document.getElementById('formContainer').classList.add('hidden');
+                document.getElementById('successMessage').classList.remove('hidden');
+                window.scrollTo(0, 0);
+
+            } catch (err) {
+                showToast('Terjadi kesalahan saat menyimpan data. Coba lagi.', 'error');
+                console.error("Submit Error:", err);
+            } finally {
+                document.getElementById('loadingOverlay').classList.remove('active');
+            }
+        });
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            if(globalEmployees.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-12 text-center text-gray-500">Belum ada data karyawan.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = globalEmployees.map(emp => `
+                <tr class="hover:bg-blue-50 transition-colors">
+                    <td class="px-6 py-4 text-xs text-gray-500">${emp.waktu || (emp.timestamp ? new Date(emp.timestamp.toDate()).toLocaleString('id-ID') : '-')}</td>
+                    <td class="px-6 py-4 font-medium">${emp.namaLengkap || '-'}</td>
+                    <td class="px-6 py-4">${emp.nomorKTP || '-'}</td>
+                    <td class="px-6 py-4">${emp.pengalamanGarment || '-'}</td>
+                    <td class="px-6 py-4">${emp.namaPerusahaan || '-'}</td>
+                    <td class="px-6 py-4">${emp.noHandphone || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // ==========================================
+        // EVENT LISTENER TOMBOL-TOMBOL
+        // ==========================================
+        
+        document.getElementById('btnResetForm').addEventListener('click', function() {
+            document.getElementById('karyawanForm').reset();
+            document.getElementById('pengalamanFields').classList.add('hidden');
+            elKabupaten.innerHTML = '<option value="">Pilih Kabupaten</option>'; elKabupaten.disabled = true;
+            elKecamatan.innerHTML = '<option value="">Pilih Kecamatan</option>'; elKecamatan.disabled = true;
+            elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>'; elKelurahan.disabled = true;
+            
+            document.getElementById('successMessage').classList.add('hidden');
+            document.getElementById('formContainer').classList.remove('hidden');
+        });
+
+        function toggleQR(show) {
+            const modal = document.getElementById('qrModal');
+            if(show) {
+                const url = window.location.href;
+                const qrImage = document.getElementById('qrImage');
+                const qrWarning = document.getElementById('qrWarning');
+
+                if (url.startsWith('file:') || url.startsWith('C:')) {
+                    qrImage.style.display = 'none';
+                    qrWarning.classList.remove('hidden');
+                } else {
+                    qrImage.style.display = 'block';
+                    qrWarning.classList.add('hidden');
+                    qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(url)}`;
+                }
+
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            } else {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        document.getElementById('btnShareQR').addEventListener('click', () => toggleQR(true));
+        document.getElementById('btnCloseQR').addEventListener('click', () => toggleQR(false));
+
+        // METODE FALLBACK UNTUK SALIN LINK (ANTI-ERROR IFRAME)
+        document.getElementById('btnCopyLink').addEventListener('click', function() {
+            const url = window.location.href;
+            
+            // Buat elemen textarea rahasia
+            const textArea = document.createElement("textarea");
+            textArea.value = url;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            
+            // Pilih dan salin teks
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Link formulir berhasil disalin!', 'success');
+            } catch (err) {
+                console.error('Gagal menyalin link', err);
+                showToast('Gagal menyalin link.', 'error');
+            }
+            
+            // Hapus textarea setelah selesai
+            document.body.removeChild(textArea);
+        });
+
+        document.getElementById('btnExportExcel').addEventListener('click', function() {
+            if(!window.XLSX) { showToast("Pustaka Excel sedang dimuat, coba lagi sebentar.", 'error'); return; }
+            if(globalEmployees.length === 0) { showToast("Belum ada data untuk diekspor.", 'error'); return; }
+
+            const formattedData = globalEmployees.map(emp => ({
+                'Nama Lengkap': emp.namaLengkap || '',
+                'Pengalaman Garment YA/TIDAK': emp.pengalamanGarment || '',
+                'Nama Perusahaan': emp.namaPerusahaan || '',
+                'BAGIAN': emp.bagian || '',
+                'LAMA BEKERJA': emp.lamaBekerja || '',
+                'Jenis Kelamin': emp.jenisKelamin || '',
+                'Tempat Lahir': emp.tempatLahir || '',
+                'Tanggal Lahir': emp.tanggalLahir || '',
+                'Status Pernikahan': emp.statusPernikahan || '',
+                'Jumlah anak': emp.jumlahAnak || '',
+                'Agama': emp.agama || '',
+                'Alamat Email': emp.alamatEmail || '',
+                'No Handphone Aktif': emp.noHandphone || '',
+                'Nomor KTP': emp.nomorKTP || '',
+                'Provinsi': emp.provinsi || '',
+                'Kabupaten': emp.kabupaten || '',
+                'Kecamatan': emp.kecamatan || '',
+                'Kelurahan': emp.kelurahan || '',
+                'RT': emp.rt || '', 'RW': emp.rw || '',
+                'Alamat (Desa/Dukuh)': emp.alamatDesa || '',
+                'Pendidikan Terakhir': emp.pendidikanTerakhir || '',
+                'Jurusan Sekolah': emp.jurusanSekolah || '',
+                'Nama Ibu Kandung': emp.namaIbuKandung || '',
+                'Nama Ayah Kandung': emp.namaAyahKandung || '',
+                'Nama Suami/Istri': emp.namaSuamiIstri || '',
+                'Nama Ibu Mertua': emp.namaIbuMertua || '',
+                'Nama Ayah Mertua': emp.namaAyahMertua || '',
+                'Nama Anak Pertama': emp.namaAnak1 || '',
+                'Nama Anak Kedua': emp.namaAnak2 || '',
+                'Nama Anak Ketiga': emp.namaAnak3 || '',
+                'Nama Kontak Darurat': emp.namaKontakDarurat || '',
+                'No telp kontak darurat': emp.noTelpDarurat || '',
+                'Hubungan': emp.hubungan || '',
+                'Waktu Pengisian': emp.waktu || (emp.timestamp ? new Date(emp.timestamp.toDate()).toLocaleString('id-ID') : '-')
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(formattedData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Data Karyawan");
+            XLSX.writeFile(workbook, "Database_Karyawan_Baru.xlsx");
+        });
+    </script>
+</body>
+</html>
