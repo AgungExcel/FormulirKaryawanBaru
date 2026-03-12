@@ -5,28 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Formulir Karyawan Baru - PT Hop Lun Indonesia</title>
     
-    <!-- Favicon (Logo di Tab Browser) -->
     <link rel="icon" type="image/png" href="hoplun128.png">
-    
-    <!-- Tailwind CSS (Untuk Desain) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- SheetJS (Untuk Export Excel) -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
     <style>
-        /* Animasi Sederhana */
         .fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Loading Overlay */
         #loadingOverlay { display: none; }
         #loadingOverlay.active { display: flex; }
-        
-        /* Hilangkan panah up/down di input number */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
@@ -38,9 +26,7 @@
     <nav class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-20 shadow-sm">
         <div class="flex items-center gap-3">
             <div class="p-0.5 rounded-lg shadow-sm border border-gray-100 bg-white">
-                <!-- Logo Perusahaan -->
                 <img src="hoplun128.png" alt="Logo Hop Lun" class="w-10 h-10 object-contain rounded-md" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <!-- Fallback Ikon jika gambar gagal dimuat -->
                 <div class="w-10 h-10 bg-blue-600 rounded-md text-white items-center justify-center hidden">
                     <i data-lucide="users" class="w-6 h-6"></i>
                 </div>
@@ -51,7 +37,6 @@
             </div>
         </div>
         
-        <!-- Toggle View -->
         <div class="flex bg-gray-100 p-1 rounded-lg">
             <button id="btnViewForm" class="px-4 py-1.5 rounded-md text-sm font-medium transition-colors bg-white shadow-sm text-blue-600">
                 Formulir Isi
@@ -64,12 +49,9 @@
 
     <main class="flex-1 p-4 md:p-6">
         
-        <!-- ======================= -->
         <!-- VIEW 1: FORMULIR ISIAN -->
-        <!-- ======================= -->
         <div id="viewForm" class="fade-in max-w-4xl w-full mx-auto my-4">
             
-            <!-- Notifikasi Sukses -->
             <div id="successMessage" class="hidden bg-white rounded-2xl shadow-xl p-8 text-center border border-green-100 mb-8 fade-in">
                 <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-600">
                     <i data-lucide="check-circle-2" class="w-10 h-10"></i>
@@ -81,7 +63,6 @@
                 </button>
             </div>
 
-            <!-- Formulir Utama -->
             <div id="formContainer" class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
                 <div class="bg-blue-600 h-3 w-full"></div>
                 <div class="p-6 md:p-10">
@@ -100,7 +81,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="space-y-1.5">
                                     <label class="text-sm font-medium text-gray-700">Nama Lengkap <span class="text-red-500">*</span></label>
-                                    <input required type="text" id="inputNamaLengkap" name="namaLengkap" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none no-number-name" placeholder="Sesuai KTP">
+                                    <input required type="text" id="inputNamaLengkap" name="namaLengkap" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none no-number-name uppercase" placeholder="Sesuai KTP">
                                 </div>
                                 <div class="space-y-1.5">
                                     <label class="text-sm font-medium text-gray-700">Nomor KTP <span class="text-red-500">*</span></label>
@@ -115,19 +96,19 @@
                                     </select></div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Tempat Lahir <span class="text-red-500">*</span></label>
-                                        <input required type="text" name="tempatLahir" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"></div>
+                                        <input required type="text" name="tempatLahir" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase"></div>
                                     <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Tanggal Lahir <span class="text-red-500">*</span></label>
                                         <input required type="date" name="tanggalLahir" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"></div>
                                 </div>
                                 <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Agama <span class="text-red-500">*</span></label>
                                     <select required name="agama" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none">
                                         <option value="">Pilih Agama</option>
-                                        <option value="Islam">Islam</option>
-                                        <option value="Christianity">Christianity (Kristen)</option>
-                                        <option value="Catholic">Catholic (Katolik)</option>
-                                        <option value="Hinduism">Hinduism (Hindu)</option>
-                                        <option value="Buddhism">Buddhism (Buddha)</option>
-                                        <option value="Konghucu">Konghucu</option>
+                                        <option value="ISLAM">ISLAM</option>
+                                        <option value="KRISTEN">KRISTEN</option>
+                                        <option value="KATOLIK">KATOLIK</option>
+                                        <option value="HINDU">HINDU</option>
+                                        <option value="BUDDHA">BUDDHA</option>
+                                        <option value="KONGHUCU">KONGHUCU</option>
                                     </select></div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Status Pernikahan <span class="text-red-500">*</span></label>
@@ -159,7 +140,6 @@
                                     <p id="err-email" class="text-red-500 text-xs mt-1 hidden font-medium">❌ Format email tidak sesuai!</p>
                                 </div>
                                 
-                                <!-- Wilayah API -->
                                 <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Provinsi <span class="text-red-500">*</span></label>
                                     <select required id="provinsi" name="provinsi" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none">
                                         <option value="" data-id="">Pilih Provinsi</option>
@@ -188,7 +168,7 @@
                                     </div>
                                 </div>
                                 <div class="md:col-span-2 space-y-1.5"><label class="text-sm font-medium text-gray-700">Desa/Dukuh/Jalan <span class="text-red-500">*</span></label>
-                                    <textarea required name="alamatDesa" rows="2" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none" placeholder="Tulis Alamat Rumah"></textarea></div>
+                                    <textarea required name="alamatDesa" rows="2" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none uppercase" placeholder="Tulis Alamat Rumah"></textarea></div>
                             </div>
                         </div>
 
@@ -207,9 +187,9 @@
                                         <option value="D4">D4</option><option value="S1">S1</option><option value="S2">S2</option>
                                     </select></div>
                                 <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Jurusan Sekolah</label>
-                                    <input type="text" name="jurusanSekolah" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none" placeholder="Isi untuk SMA keatas"></div>
+                                    <input type="text" name="jurusanSekolah" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none uppercase" placeholder="Isi untuk SMA keatas"></div>
                                 
-                                <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Pengalaman Garment? <span class="text-red-500">*</span></label>
+                                <div class="space-y-1.5 md:col-span-2"><label class="text-sm font-medium text-gray-700">Pengalaman Garment? <span class="text-red-500">*</span></label>
                                     <select required id="pengalamanGarment" name="pengalamanGarment" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none">
                                         <option value="">Pilih</option>
                                         <option value="YA">YA</option>
@@ -219,11 +199,21 @@
                                 <!-- Hidden Fields if Pengalaman = YA -->
                                 <div id="pengalamanFields" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white p-4 rounded-lg border border-gray-200 mt-2">
                                     <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Perusahaan</label>
-                                        <input type="text" name="namaPerusahaan" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none"></div>
+                                        <input type="text" name="namaPerusahaan" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none uppercase"></div>
                                     <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Bagian / Posisi</label>
-                                        <input type="text" name="bagian" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none"></div>
-                                    <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Lama Bekerja</label>
-                                        <input type="text" name="lamaBekerja" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none" placeholder="Cth: 2 Tahun 3 Bulan"></div>
+                                        <input type="text" name="bagian" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none uppercase"></div>
+                                    <div class="space-y-1.5">
+                                        <label class="text-sm font-medium text-gray-700">Lama Bekerja</label>
+                                        <div class="flex gap-2">
+                                            <input type="text" inputmode="numeric" id="inputLamaAngka" name="lamaBekerjaAngka" class="w-1/2 px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Angka">
+                                            <select id="inputLamaSatuan" name="lamaBekerjaSatuan" class="w-1/2 px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                                <option value="">Pilih</option>
+                                                <option value="BULAN">BULAN</option>
+                                                <option value="TAHUN">TAHUN</option>
+                                            </select>
+                                        </div>
+                                        <p id="err-lama" class="text-red-500 text-xs mt-1 hidden font-medium">❌ Keduanya wajib diisi!</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -235,22 +225,22 @@
                             </h2>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Ibu Kandung <span class="text-red-500">*</span></label>
-                                    <input required type="text" name="namaIbuKandung" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none no-number-name"></div>
+                                    <input required type="text" name="namaIbuKandung" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none no-number-name uppercase"></div>
                                 <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Ayah Kandung <span class="text-red-500">*</span></label>
-                                    <input required type="text" name="namaAyahKandung" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none no-number-name"></div>
+                                    <input required type="text" name="namaAyahKandung" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none no-number-name uppercase"></div>
 
                                 <!-- Pasangan Container -->
                                 <div id="pasanganContainer" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-200 pt-4 mt-2">
                                     <p class="text-sm text-gray-500 mb-1 md:col-span-2 italic">Wajib diisi jika sudah menikah:</p>
                                     
                                     <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Suami / Istri</label>
-                                        <input type="text" name="namaSuamiIstri" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none no-number-name"></div>
+                                        <input type="text" name="namaSuamiIstri" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none no-number-name uppercase"></div>
                                     <div class="hidden md:block"></div>
                                     
                                     <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Ibu Mertua</label>
-                                        <input type="text" name="namaIbuMertua" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none no-number-name"></div>
+                                        <input type="text" name="namaIbuMertua" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none no-number-name uppercase"></div>
                                     <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Ayah Mertua</label>
-                                        <input type="text" name="namaAyahMertua" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none no-number-name"></div>
+                                        <input type="text" name="namaAyahMertua" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none no-number-name uppercase"></div>
                                 </div>
 
                                 <!-- Anak Container -->
@@ -258,11 +248,11 @@
                                     <p class="text-sm text-gray-500 mb-1 md:col-span-2 italic">Data Anak (Wajib diisi jika punya anak):</p>
                                     
                                     <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Anak Pertama</label>
-                                        <input type="text" name="namaAnak1" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none no-number-name"></div>
+                                        <input type="text" name="namaAnak1" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none no-number-name uppercase"></div>
                                     <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Anak Kedua</label>
-                                        <input type="text" name="namaAnak2" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none no-number-name"></div>
+                                        <input type="text" name="namaAnak2" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none no-number-name uppercase"></div>
                                     <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Nama Anak Ketiga</label>
-                                        <input type="text" name="namaAnak3" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none no-number-name"></div>
+                                        <input type="text" name="namaAnak3" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 outline-none no-number-name uppercase"></div>
                                 </div>
                             </div>
                         </div>
@@ -277,7 +267,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div class="space-y-1.5">
                                     <label class="text-sm font-medium text-gray-700">Nama Kontak <span class="text-red-500">*</span></label>
-                                    <input required type="text" id="inputNamaDarurat" name="namaKontakDarurat" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-400 outline-none">
+                                    <input required type="text" id="inputNamaDarurat" name="namaKontakDarurat" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-400 outline-none uppercase">
                                     <p id="err-nama-darurat" class="text-red-500 text-xs mt-1 hidden font-medium">❌ Tidak boleh diri sendiri!</p>
                                 </div>
                                 <div class="space-y-1.5">
@@ -286,7 +276,22 @@
                                     <p id="err-telp-darurat" class="text-red-500 text-xs mt-1 hidden font-medium">❌ Tidak boleh diri sendiri!</p>
                                 </div>
                                 <div class="space-y-1.5"><label class="text-sm font-medium text-gray-700">Hubungan <span class="text-red-500">*</span></label>
-                                    <input required type="text" name="hubungan" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-400 outline-none" placeholder="Cth: Suami/Istri/Ortu"></div>
+                                    <input required type="text" name="hubungan" class="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-400 outline-none uppercase" placeholder="Cth: Suami/Istri/Ortu"></div>
+                            </div>
+                        </div>
+
+                        <!-- Bagian Tambahan: Upload Pas Foto (Paling Bawah & Tidak Wajib) -->
+                        <div class="bg-blue-50 p-6 rounded-xl border border-blue-200">
+                            <h2 class="text-lg font-bold text-blue-800 flex items-center gap-2 mb-4">
+                                <i data-lucide="camera" class="w-5 h-5 text-blue-600"></i> Pas Foto Resmi
+                            </h2>
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-gray-700">Pilih Foto dari Galeri atau Kamera <span class="text-gray-500 font-normal italic ml-1">(Tidak Wajib)</span></label>
+                                <input type="file" id="inputFoto" accept="image/*" capture="environment" class="w-full px-3 py-2.5 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
+                                <p class="text-xs text-gray-500">Foto akan dikompres secara otomatis oleh sistem.</p>
+                                <div id="fotoPreviewContainer" class="hidden mt-3 text-center sm:text-left">
+                                    <img id="fotoPreview" src="" class="w-32 h-32 object-cover rounded-lg border-2 border-blue-400 shadow-md mx-auto sm:mx-0" alt="Preview Foto">
+                                </div>
                             </div>
                         </div>
 
@@ -303,9 +308,7 @@
             </div>
         </div>
 
-        <!-- ======================= -->
-        <!-- VIEW 2: DATABASE ADMIN  -->
-        <!-- ======================= -->
+        <!-- VIEW 2: DATABASE ADMIN -->
         <div id="viewAdmin" class="hidden fade-in bg-white rounded-2xl shadow-xl overflow-hidden w-full mx-auto border border-gray-100 flex-col h-[85vh] my-4">
             <div class="bg-slate-800 p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-white">
                 <div>
@@ -332,6 +335,7 @@
                     <thead class="bg-slate-100 text-slate-700 sticky top-0 z-10 shadow-sm border-b border-gray-200">
                         <tr>
                             <th class="px-6 py-4 font-semibold">Waktu Submit</th>
+                            <th class="px-6 py-4 font-semibold">Foto Karyawan</th>
                             <th class="px-6 py-4 font-semibold">Nama Lengkap</th>
                             <th class="px-6 py-4 font-semibold">Pengalaman Garment</th>
                             <th class="px-6 py-4 font-semibold">Nama Perusahaan</th>
@@ -370,7 +374,7 @@
                         </tr>
                     </thead>
                     <tbody id="tableBody" class="divide-y divide-gray-200 bg-white">
-                        <tr><td colspan="36" class="px-6 py-12 text-center text-gray-500">Memuat data / Belum ada data...</td></tr>
+                        <tr><td colspan="37" class="px-6 py-12 text-center text-gray-500">Memuat data / Belum ada data...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -440,22 +444,21 @@
     <!-- Loading Overlay -->
     <div id="loadingOverlay" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] flex-col items-center justify-center">
         <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
-        <p class="text-lg font-bold text-gray-800">Menyimpan Data...</p>
+        <p class="text-lg font-bold text-gray-800 mb-2">Menyimpan Data...</p>
+        <p class="text-sm text-gray-700">Mohon tunggu, sedang memproses foto.</p>
     </div>
 
-    <!-- Toast Notification UI -->
+    <!-- Toast Notification -->
     <div id="toast" class="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg transform transition-all duration-300 translate-y-20 opacity-0 z-[200] flex items-center gap-2">
         <i data-lucide="info" class="w-5 h-5"></i>
         <span id="toastMessage" class="font-medium">Pesan</span>
     </div>
 
-    <!-- SCRIPT UTAMA (LOGIKA APLIKASI) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Konfigurasi Link Google Apps Script Anda
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-q_FMoXKG2nyX16EHg6x3QWEL7bMWzWtSopMlM5wWWVhdg0cyyCeBfr2e5LmXxYV5fA/exec";
 
         let app, auth, db, appId;
@@ -464,7 +467,7 @@
         lucide.createIcons();
 
         // ----------------------------------------------------
-        // SISTEM TOAST NOTIFICATION (PENGGANTI ALERT)
+        // SISTEM TOAST
         // ----------------------------------------------------
         window.showToast = function(message, type = 'success') {
             const toast = document.getElementById('toast');
@@ -472,11 +475,9 @@
             toastMsg.textContent = message;
             
             if(type === 'error') {
-                toast.classList.remove('bg-green-600');
-                toast.classList.add('bg-red-600');
+                toast.classList.remove('bg-green-600'); toast.classList.add('bg-red-600');
             } else {
-                toast.classList.remove('bg-red-600');
-                toast.classList.add('bg-green-600');
+                toast.classList.remove('bg-red-600'); toast.classList.add('bg-green-600');
             }
             
             toast.classList.remove('translate-y-20', 'opacity-0');
@@ -484,17 +485,65 @@
         };
 
         // ----------------------------------------------------
+        // UPLOAD FOTO BASE64 (COMPRESSION OTOMATIS)
+        // ----------------------------------------------------
+        let fotoBase64Data = "";
+        let fotoFileName = "";
+        const inputFoto = document.getElementById('inputFoto');
+        const fotoPreview = document.getElementById('fotoPreview');
+        const fotoPreviewContainer = document.getElementById('fotoPreviewContainer');
+
+        inputFoto.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            fotoFileName = file.name;
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    // Kompresi ukuran gambar dengan Canvas agar tidak terlalu berat saat upload
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800; // maksimal lebar 800px
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Convert ke Base64 Format (Kualitas 70%)
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    
+                    // Hapus format awalan ("data:image/jpeg;base64,") untuk mempermudah Google Script
+                    fotoBase64Data = compressedDataUrl.split(',')[1];
+                    
+                    // Tampilkan Preview
+                    fotoPreview.src = compressedDataUrl;
+                    fotoPreviewContainer.classList.remove('hidden');
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        });
+
+        // ----------------------------------------------------
         // LOGIKA HURUF BESAR (UPPERCASE) OTOMATIS
         // ----------------------------------------------------
         document.addEventListener('input', function(e) {
             if (e.target.tagName.toLowerCase() === 'input' || e.target.tagName.toLowerCase() === 'textarea') {
-                // Pengecualian untuk Email (Huruf Kecil) dan Angka
                 if (e.target.id === 'inputEmail') {
                     const start = e.target.selectionStart;
                     const end = e.target.selectionEnd;
                     e.target.value = e.target.value.toLowerCase();
                     e.target.setSelectionRange(start, end);
-                } else if (e.target.type !== 'number' && e.target.getAttribute('inputmode') !== 'numeric') {
+                } else if (e.target.type !== 'number' && e.target.type !== 'file' && e.target.getAttribute('inputmode') !== 'numeric') {
                     const start = e.target.selectionStart;
                     const end = e.target.selectionEnd;
                     e.target.value = e.target.value.toUpperCase();
@@ -524,40 +573,36 @@
         const elRT = document.getElementById('inputRT');
         const elRW = document.getElementById('inputRW');
 
-        // Menghapus Angka di Nama
         document.querySelectorAll('.no-number-name').forEach(el => {
             el.addEventListener('input', function() {
                 if (/\d/.test(this.value)) {
-                    this.value = this.value.replace(/\d/g, ''); // Hapus angka
+                    this.value = this.value.replace(/\d/g, ''); 
                     showToast('Nama tidak boleh diisi dengan angka!', 'error');
                 }
                 if(this.id === 'inputNamaLengkap') validasiKontakDarurat();
             });
         });
 
-        // Validasi NIK 16 Digit & Focus Trap
         elKTP.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); });
         elKTP.addEventListener('blur', function() {
             if (this.value.length > 0 && this.value.length !== 16) {
                 errKTP.classList.remove('hidden');
-                setTimeout(() => this.focus(), 10); // Kunci Focus (Kursor tertahan)
+                setTimeout(() => this.focus(), 10);
             } else {
                 errKTP.classList.add('hidden');
             }
         });
 
-        // Validasi Email Format & Focus Trap
         elEmail.addEventListener('blur', function() {
             const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (this.value.length > 0 && !regex.test(this.value)) {
                 errEmail.classList.remove('hidden');
-                setTimeout(() => this.focus(), 10); // Kunci Focus
+                setTimeout(() => this.focus(), 10);
             } else {
                 errEmail.classList.add('hidden');
             }
         });
 
-        // Validasi RT & RW Wajib 2 Digit (Focus Trap)
         function checkRTRW(el) {
             if (el.value.length > 0 && el.value.length < 2) {
                 showToast(el.placeholder + ' harus 2 digit angka!', 'error');
@@ -569,12 +614,32 @@
         elRT.addEventListener('blur', function() { checkRTRW(this); });
         elRW.addEventListener('blur', function() { checkRTRW(this); });
 
-        // Memaksa input angka lainnya murni angka
+        // Paksa semua field angka khusus selain NIK dan RT RW hanya jadi angka
         document.querySelectorAll('input[inputmode="numeric"]:not(#inputKTP):not(#inputRT):not(#inputRW)').forEach(el => {
             el.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); });
         });
 
-        // Validasi Kontak Darurat (Tidak Boleh Diri Sendiri)
+        // FOCUS TRAP KHUSUS PENGALAMAN GARMENT (Lama Berkerja)
+        const elLamaAngka = document.getElementById('inputLamaAngka');
+        const elLamaSatuan = document.getElementById('inputLamaSatuan');
+        const errLama = document.getElementById('err-lama');
+
+        elLamaAngka.addEventListener('blur', function(e) {
+            if(document.getElementById('pengalamanGarment').value === 'YA') {
+                if (e.relatedTarget === elLamaSatuan) return; // Boleh pindah ke Satuan sebelahnya
+                if (this.value === '') { errLama.classList.remove('hidden'); setTimeout(() => this.focus(), 10); }
+                else { errLama.classList.add('hidden'); }
+            }
+        });
+        elLamaSatuan.addEventListener('blur', function(e) {
+            if(document.getElementById('pengalamanGarment').value === 'YA') {
+                if (e.relatedTarget === elLamaAngka) return; // Boleh pindah ke Angka sebelahnya
+                if (this.value === '') { errLama.classList.remove('hidden'); setTimeout(() => this.focus(), 10); }
+                else { errLama.classList.add('hidden'); }
+            }
+        });
+
+
         function validasiKontakDarurat() {
             const namaLengkapVal = elNamaLengkap.value.toLowerCase().trim();
             const namaDaruratVal = elNamaDarurat.value.toLowerCase().trim();
@@ -582,27 +647,19 @@
             const telpDaruratVal = elTelpDarurat.value.trim();
 
             if (namaDaruratVal && namaLengkapVal && namaDaruratVal === namaLengkapVal) {
-                errNamaDarurat.classList.remove('hidden');
-                elNamaDarurat.setCustomValidity("Nama tidak boleh sama!");
-            } else {
-                errNamaDarurat.classList.add('hidden');
-                elNamaDarurat.setCustomValidity("");
-            }
+                errNamaDarurat.classList.remove('hidden'); elNamaDarurat.setCustomValidity("Nama tidak boleh sama!");
+            } else { errNamaDarurat.classList.add('hidden'); elNamaDarurat.setCustomValidity(""); }
 
             if (telpDaruratVal && hpVal && telpDaruratVal === hpVal) {
-                errTelpDarurat.classList.remove('hidden');
-                elTelpDarurat.setCustomValidity("Nomor tidak boleh sama!");
-            } else {
-                errTelpDarurat.classList.add('hidden');
-                elTelpDarurat.setCustomValidity("");
-            }
+                errTelpDarurat.classList.remove('hidden'); elTelpDarurat.setCustomValidity("Nomor tidak boleh sama!");
+            } else { errTelpDarurat.classList.add('hidden'); elTelpDarurat.setCustomValidity(""); }
         }
         elNamaDarurat.addEventListener('input', validasiKontakDarurat);
         elTelpDarurat.addEventListener('input', validasiKontakDarurat);
         elNoHP.addEventListener('input', validasiKontakDarurat);
 
         // ----------------------------------------------------
-        // STATUS PERNIKAHAN & JUMLAH ANAK (PILIHAN DINAMIS)
+        // STATUS PERNIKAHAN & JUMLAH ANAK (LOGIKA DINAMIS)
         // ----------------------------------------------------
         const elStatus = document.getElementById('statusPernikahan');
         const elAnak = document.getElementById('jumlahAnak');
@@ -612,29 +669,29 @@
         const opsiAnak = {
             "SINGLE": [{val: "TK0", text: "TK0"}],
             "MARRIED": [
-                {val: "K0", text: "K0"},
-                {val: "K1", text: "K1"},
-                {val: "K2", text: "K2"},
-                {val: "K3", text: "K3"}
+                {val: "K0", text: "K0"}, {val: "K1", text: "K1"}, {val: "K2", text: "K2"}, {val: "K3", text: "K3"}
             ],
             "WIDOW": [
-                {val: "TK0", text: "TK0"},
-                {val: "TK1", text: "TK1"},
-                {val: "TK2", text: "TK2"},
-                {val: "TK3", text: "TK3"}
+                {val: "TK0", text: "TK0"}, {val: "TK1", text: "TK1"}, {val: "TK2", text: "TK2"}, {val: "TK3", text: "TK3"}
             ]
         };
 
+        function resetStatusAnak() {
+            elAnak.innerHTML = '<option value="">Pilih Jumlah Anak</option>';
+            pasanganContainer.classList.add('hidden');
+            anakContainer.classList.add('hidden');
+            pasanganContainer.querySelectorAll('input').forEach(el => el.required = false);
+            anakContainer.querySelectorAll('input').forEach(el => el.required = false);
+        }
+
         elStatus.addEventListener('change', function() {
             const status = this.value;
-            elAnak.innerHTML = '<option value="">Pilih Jumlah Anak</option>';
+            resetStatusAnak();
             
-            // Atur Dropdown Jumlah Anak
             if (status && opsiAnak[status]) {
                 opsiAnak[status].forEach(opt => {
                     const o = document.createElement('option');
-                    o.value = opt.val;
-                    o.textContent = opt.text;
+                    o.value = opt.val; o.textContent = opt.text;
                     elAnak.appendChild(o);
                 });
                 elAnak.disabled = false;
@@ -645,33 +702,46 @@
                 elAnak.innerHTML = '<option value="">Pilih Status Dahulu</option>';
             }
 
-            // Visibilitas Kontainer Keluarga
-            if (status === 'SINGLE') {
-                pasanganContainer.classList.add('hidden');
-                anakContainer.classList.add('hidden');
-                // Hapus wajib isi
-                pasanganContainer.querySelectorAll('input').forEach(el => el.required = false);
-            } else if (status === 'MARRIED') {
+            // Atur Visibilitas Pasangan (Suami,Istri,Mertua)
+            if (status === 'MARRIED') {
                 pasanganContainer.classList.remove('hidden');
-                anakContainer.classList.remove('hidden');
-            } else if (status === 'WIDOW') {
-                pasanganContainer.classList.add('hidden');
-                anakContainer.classList.remove('hidden');
-                pasanganContainer.querySelectorAll('input').forEach(el => el.required = false);
-            } else {
-                pasanganContainer.classList.add('hidden');
+            }
+        });
+
+        // Trigger untuk memunculkan kolom anak berdasar valuenya
+        elAnak.addEventListener('change', function() {
+            const val = this.value;
+            if (val === 'K0' || val === 'TK0' || val === '') {
                 anakContainer.classList.add('hidden');
+                anakContainer.querySelectorAll('input').forEach(el => el.required = false);
+            } else {
+                anakContainer.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('pengalamanGarment').addEventListener('change', function() {
+            const fields = document.getElementById('pengalamanFields');
+            if (this.value === 'YA') {
+                fields.classList.remove('hidden');
+                elLamaAngka.required = true;
+                elLamaSatuan.required = true;
+            } else {
+                fields.classList.add('hidden');
+                elLamaAngka.required = false;
+                elLamaSatuan.required = false;
+                elLamaAngka.value = '';
+                elLamaSatuan.value = '';
+                errLama.classList.add('hidden');
             }
         });
 
         // ----------------------------------------------------
-        // SISTEM PASSWORD ADMIN
+        // SISTEM PASSWORD ADMIN & TAB
         // ----------------------------------------------------
         const DEFAULT_PASSWORD = "AGUNG";
         function getAdminPassword() { return localStorage.getItem('app_admin_password') || DEFAULT_PASSWORD; }
         function setAdminPassword(newPwd) { localStorage.setItem('app_admin_password', newPwd); }
 
-        // Navigasi Tabs
         const btnViewForm = document.getElementById('btnViewForm');
         const btnViewAdmin = document.getElementById('btnViewAdmin');
         const viewForm = document.getElementById('viewForm');
@@ -713,35 +783,24 @@
         // Fitur Ganti Password
         const changePwdModal = document.getElementById('changePwdModal');
         const changePwdForm = document.getElementById('changePwdForm');
-        
         document.getElementById('btnOpenChangePwd').addEventListener('click', () => {
             changePwdModal.classList.remove('hidden'); changePwdModal.classList.add('flex');
             document.getElementById('oldPwd').value = ''; document.getElementById('newPwd').value = '';
             document.getElementById('oldPwd').focus();
         });
-
-        document.getElementById('btnCloseChangePwd').addEventListener('click', () => {
-            changePwdModal.classList.add('hidden'); changePwdModal.classList.remove('flex');
-        });
+        document.getElementById('btnCloseChangePwd').addEventListener('click', () => { changePwdModal.classList.add('hidden'); changePwdModal.classList.remove('flex'); });
 
         changePwdForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const oldPwdInput = document.getElementById('oldPwd').value;
             const newPwdInput = document.getElementById('newPwd').value;
-
             if (oldPwdInput !== getAdminPassword()) { showToast('Password Lama salah!', 'error'); return; }
             if (newPwdInput.trim() === "") { showToast('Password Baru kosong!', 'error'); return; }
-
             setAdminPassword(newPwdInput);
             showToast('Password Admin berhasil diubah!', 'success');
             changePwdModal.classList.add('hidden'); changePwdModal.classList.remove('flex');
         });
 
-        document.getElementById('pengalamanGarment').addEventListener('change', function() {
-            const fields = document.getElementById('pengalamanFields');
-            if (this.value === 'YA') fields.classList.remove('hidden');
-            else fields.classList.add('hidden');
-        });
 
         // ----------------------------------------------------
         // INISIALISASI FIREBASE
@@ -780,7 +839,7 @@
         fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
             .then(res => res.json())
             .then(data => {
-                data.sort((a, b) => a.name.localeCompare(b.name)); // SORT A-Z
+                data.sort((a, b) => a.name.localeCompare(b.name));
                 data.forEach(p => {
                     const opt = document.createElement('option');
                     opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
@@ -799,7 +858,7 @@
                 fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${id}.json`)
                 .then(res => res.json())
                 .then(data => {
-                    data.sort((a, b) => a.name.localeCompare(b.name)); // SORT A-Z
+                    data.sort((a, b) => a.name.localeCompare(b.name));
                     data.forEach(p => {
                         const opt = document.createElement('option');
                         opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
@@ -820,7 +879,7 @@
                 fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${id}.json`)
                 .then(res => res.json())
                 .then(data => {
-                    data.sort((a, b) => a.name.localeCompare(b.name)); // SORT A-Z
+                    data.sort((a, b) => a.name.localeCompare(b.name));
                     data.forEach(p => {
                         const opt = document.createElement('option');
                         opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
@@ -840,7 +899,7 @@
                 fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${id}.json`)
                 .then(res => res.json())
                 .then(data => {
-                    data.sort((a, b) => a.name.localeCompare(b.name)); // SORT A-Z
+                    data.sort((a, b) => a.name.localeCompare(b.name));
                     data.forEach(p => {
                         const opt = document.createElement('option');
                         opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
@@ -857,12 +916,15 @@
         document.getElementById('karyawanForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // Pengecekan akhir khusus KTP agar tidak bocor
-            if(elKTP.value.length !== 16) {
-                showToast("Pengisian Gagal! Nomor KTP Wajib 16 Digit.", "error"); elKTP.focus(); return;
-            }
-            if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(elEmail.value) && elEmail.value !== "") {
-                showToast("Format Email Tidak Valid!", "error"); elEmail.focus(); return;
+            // Pengecekan akhir khusus KTP dan Email
+            if(elKTP.value.length !== 16) { showToast("Pengisian Gagal! Nomor KTP Wajib 16 Digit.", "error"); elKTP.focus(); return; }
+            if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(elEmail.value) && elEmail.value !== "") { showToast("Format Email Tidak Valid!", "error"); elEmail.focus(); return; }
+
+            // Pengecekan Khusus Lama Bekerja
+            if(document.getElementById('pengalamanGarment').value === 'YA') {
+                if(elLamaAngka.value === '' || elLamaSatuan.value === '') {
+                    errLama.classList.remove('hidden'); showToast("Lengkap data lama bekerja!", "error"); elLamaAngka.focus(); return;
+                }
             }
 
             document.getElementById('loadingOverlay').classList.add('active');
@@ -870,16 +932,21 @@
             const dataObj = Object.fromEntries(fd.entries());
             dataObj.waktu = new Date().toLocaleString('id-ID');
 
-            // --- PENGGABUNGAN ALAMAT LENGKAP ---
-            // Bersihkan tulisan "KABUPATEN " dari nama kabupaten agar tidak dobel
-            let textKab = dataObj.kabupaten || "";
-            textKab = textKab.replace(/^KABUPATEN\s+/i, '');
-            // Jika diawali KOTA, maka awalan kosong. Jika bukan kota, kasih awalan KAB.
-            let prefixKab = (dataObj.kabupaten || "").toUpperCase().startsWith('KOTA') ? '' : 'KAB ';
-            
-            // Format: [Alamat] RT[RT] RW[RW] KEL [Kelurahan] KEC [Kecamatan] KAB/KOTA [Kabupaten]
-            dataObj.alamatLengkap = `${dataObj.alamatDesa} RT${dataObj.rt} RW${dataObj.rw} KEL ${dataObj.kelurahan} KEC ${dataObj.kecamatan} ${prefixKab}${textKab}`.toUpperCase();
+            // Penggabungan Lama Bekerja
+            if(document.getElementById('pengalamanGarment').value === 'YA') {
+                dataObj.lamaBekerja = `${dataObj.lamaBekerjaAngka} ${dataObj.lamaBekerjaSatuan}`.toUpperCase();
+            } else {
+                dataObj.lamaBekerja = "";
+            }
 
+            // Tambahkan Base64 Foto
+            dataObj.fotoBase64 = fotoBase64Data;
+            dataObj.fotoName = fotoFileName;
+
+            // Penggabungan Alamat Lengkap
+            let textKab = dataObj.kabupaten || ""; textKab = textKab.replace(/^KABUPATEN\s+/i, '');
+            let prefixKab = (dataObj.kabupaten || "").toUpperCase().startsWith('KOTA') ? '' : 'KAB ';
+            dataObj.alamatLengkap = `${dataObj.alamatDesa} RT${dataObj.rt} RW${dataObj.rw} KEL ${dataObj.kelurahan} KEC ${dataObj.kecamatan} ${prefixKab}${textKab}`.toUpperCase();
 
             try {
                 if (db && auth && auth.currentUser) {
@@ -910,11 +977,12 @@
         function renderTable() {
             const tbody = document.getElementById('tableBody');
             if(globalEmployees.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="36" class="px-6 py-12 text-center text-gray-500">Belum ada data karyawan.</td></tr>`; return;
+                tbody.innerHTML = `<tr><td colspan="37" class="px-6 py-12 text-center text-gray-500">Belum ada data karyawan.</td></tr>`; return;
             }
             tbody.innerHTML = globalEmployees.map(emp => `
                 <tr class="hover:bg-blue-50 transition-colors">
                     <td class="px-6 py-4 text-xs text-gray-500">${emp.waktu || (emp.timestamp ? new Date(emp.timestamp.toDate()).toLocaleString('id-ID') : '-')}</td>
+                    <td class="px-6 py-4 font-medium text-blue-600 underline"><a href="${emp.fotoUrl || '#'}" target="_blank">Lihat Foto</a></td>
                     <td class="px-6 py-4 font-medium">${emp.namaLengkap || '-'}</td>
                     <td class="px-6 py-4">${emp.pengalamanGarment || '-'}</td>
                     <td class="px-6 py-4">${emp.namaPerusahaan || '-'}</td>
@@ -961,12 +1029,12 @@
             
             errNama.classList.add('hidden'); errKTP.classList.add('hidden');
             errNamaDarurat.classList.add('hidden'); errTelpDarurat.classList.add('hidden');
-            errEmail.classList.add('hidden');
+            errEmail.classList.add('hidden'); errLama.classList.add('hidden');
 
-            elAnak.innerHTML = '<option value="">Pilih Status Dahulu</option>'; elAnak.disabled = true;
-            elAnak.classList.remove('bg-white'); elAnak.classList.add('bg-gray-100');
+            fotoPreviewContainer.classList.add('hidden');
+            fotoPreview.src = ""; fotoBase64Data = ""; fotoFileName = "";
 
-            pasanganContainer.classList.add('hidden'); anakContainer.classList.add('hidden');
+            resetStatusAnak();
 
             elKabupaten.innerHTML = '<option value="">Pilih Kabupaten</option>'; elKabupaten.disabled = true;
             elKecamatan.innerHTML = '<option value="">Pilih Kecamatan</option>'; elKecamatan.disabled = true;
@@ -976,7 +1044,6 @@
             document.getElementById('formContainer').classList.remove('hidden');
         });
 
-        // TOMBOL BERSIHKAN FORM (CLEAR DATA)
         document.getElementById('btnClearForm').addEventListener('click', function() {
             if(confirm("Apakah Anda yakin ingin menghapus semua isian data form ini?")) {
                 document.getElementById('karyawanForm').reset();
@@ -984,12 +1051,12 @@
                 
                 errNama.classList.add('hidden'); errKTP.classList.add('hidden');
                 errNamaDarurat.classList.add('hidden'); errTelpDarurat.classList.add('hidden');
-                errEmail.classList.add('hidden');
+                errEmail.classList.add('hidden'); errLama.classList.add('hidden');
 
-                elAnak.innerHTML = '<option value="">Pilih Status Dahulu</option>'; elAnak.disabled = true;
-                elAnak.classList.remove('bg-white'); elAnak.classList.add('bg-gray-100');
+                fotoPreviewContainer.classList.add('hidden');
+                fotoPreview.src = ""; fotoBase64Data = ""; fotoFileName = "";
 
-                pasanganContainer.classList.add('hidden'); anakContainer.classList.add('hidden');
+                resetStatusAnak();
 
                 elKabupaten.innerHTML = '<option value="">Pilih Kabupaten</option>'; elKabupaten.disabled = true;
                 elKecamatan.innerHTML = '<option value="">Pilih Kecamatan</option>'; elKecamatan.disabled = true;
@@ -1038,6 +1105,8 @@
             if(globalEmployees.length === 0) { showToast("Belum ada data untuk diekspor.", 'error'); return; }
 
             const formattedData = globalEmployees.map(emp => ({
+                'Waktu Pengisian': emp.waktu || (emp.timestamp ? new Date(emp.timestamp.toDate()).toLocaleString('id-ID') : '-'),
+                'Foto Karyawan (URL)': emp.fotoUrl || 'Link Foto Dibuat di Spreadsheet Google',
                 'Nama Lengkap': emp.namaLengkap || '',
                 'Pengalaman Garment YA/TIDAK': emp.pengalamanGarment || '',
                 'Nama Perusahaan': emp.namaPerusahaan || '',
@@ -1059,7 +1128,6 @@
                 'Nama Anak Ketiga': emp.namaAnak3 || '',
                 'Nama Kontak Darurat': emp.namaKontakDarurat || '', 'No telp kontak darurat': emp.noTelpDarurat || '',
                 'Hubungan': emp.hubungan || '',
-                'Waktu Pengisian': emp.waktu || (emp.timestamp ? new Date(emp.timestamp.toDate()).toLocaleString('id-ID') : '-'),
                 'Alamat Lengkap (Gabungan)': emp.alamatLengkap || ''
             }));
 
