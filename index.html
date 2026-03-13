@@ -5,10 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Formulir Karyawan Baru - PT Hop Lun Indonesia</title>
     
+    <!-- Favicon -->
     <link rel="icon" type="image/png" href="hoplun128.png">
+    
+    <!-- Tailwind CSS (Desain Responsif) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- SheetJS (Export Excel) -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+    <!-- AI Background Removal -->
     <script src="https://unpkg.com/@imgly/background-removal@1.4.3/dist/imgly-background-removal.iife.min.js"></script>
 
     <style>
@@ -16,6 +25,7 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         #loadingOverlay { display: none; }
         #loadingOverlay.active { display: flex; }
+        /* Hilangkan panah up/down di input number */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
@@ -199,7 +209,7 @@
                                         <option value="TIDAK">TIDAK</option>
                                     </select></div>
                                 
-                                <!-- Bagian Tahun dan Bulan untuk Lama Bekerja (Telah Dipisah) -->
+                                <!-- Bagian Tahun dan Bulan untuk Lama Bekerja -->
                                 <div id="pengalamanFields" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 bg-white p-4 rounded-xl border border-gray-200 mt-2 w-full">
                                     <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Nama Perusahaan</label>
                                         <input type="text" id="inputNamaPerusahaan" name="namaPerusahaan" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none uppercase"></div>
@@ -480,7 +490,7 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // HARAP PASTIKAN LINK INI SESUAI DENGAN DEPLOY GOOGLE APPS SCRIPT ANDA
+        // MENGGUNAKAN LINK DEPLOY ANDA YANG BARU
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfB9VMrfEo7r5Dmz6G7zSx6bMf5KKVgsDotFhWvh1UEeWkcQyQS5YGuhli-XujVfwUig/exec";
 
         let app, auth, db, appId;
@@ -518,20 +528,21 @@
         const maxDateStr = dt.toISOString().split('T')[0];
         
         // Set max atribut pada input kalender
-        elTglLahir.setAttribute('max', maxDateStr);
-
-        elTglLahir.addEventListener('change', function() {
-            const selectedDate = new Date(this.value);
-            if (selectedDate > dt) {
-                errTgl.classList.remove('hidden');
-                elTglLahir.classList.add('border-red-500', 'text-red-600');
-                showToast("Usia minimal harus 17 Tahun!", "error");
-                this.value = ''; // Kosongkan jika salah
-            } else {
-                errTgl.classList.add('hidden');
-                elTglLahir.classList.remove('border-red-500', 'text-red-600');
-            }
-        });
+        if(elTglLahir) {
+            elTglLahir.setAttribute('max', maxDateStr);
+            elTglLahir.addEventListener('change', function() {
+                const selectedDate = new Date(this.value);
+                if (selectedDate > dt) {
+                    errTgl.classList.remove('hidden');
+                    elTglLahir.classList.add('border-red-500', 'text-red-600');
+                    showToast("Usia minimal harus 17 Tahun!", "error");
+                    this.value = ''; // Kosongkan jika salah
+                } else {
+                    errTgl.classList.add('hidden');
+                    elTglLahir.classList.remove('border-red-500', 'text-red-600');
+                }
+            });
+        }
 
         // ----------------------------------------------------
         // UPLOAD FOTO (KAMERA / GALERI) & AI BACKGROUND REMOVAL
@@ -637,11 +648,11 @@
             }
         }
 
-        inputFotoKamera.addEventListener('change', handleFotoUpload);
-        inputFotoGaleri.addEventListener('change', handleFotoUpload);
+        if(inputFotoKamera) inputFotoKamera.addEventListener('change', handleFotoUpload);
+        if(inputFotoGaleri) inputFotoGaleri.addEventListener('change', handleFotoUpload);
 
         // ----------------------------------------------------
-        // LOGIKA HURUF BESAR (UPPERCASE) OTOMATIS (BUG-FIXED SEPENUHNYA)
+        // LOGIKA HURUF BESAR (UPPERCASE) OTOMATIS (Aman dari Bug)
         // ----------------------------------------------------
         document.addEventListener('input', function(e) {
             const tag = e.target.tagName.toLowerCase();
@@ -703,25 +714,29 @@
             });
         });
 
-        elKTP.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); });
-        elKTP.addEventListener('blur', function() {
-            if (this.value.length > 0 && this.value.length !== 16) {
-                errKTP.classList.remove('hidden');
-                setTimeout(() => this.focus(), 10);
-            } else {
-                errKTP.classList.add('hidden');
-            }
-        });
+        if(elKTP) {
+            elKTP.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); });
+            elKTP.addEventListener('blur', function() {
+                if (this.value.length > 0 && this.value.length !== 16) {
+                    errKTP.classList.remove('hidden');
+                    setTimeout(() => this.focus(), 10);
+                } else {
+                    errKTP.classList.add('hidden');
+                }
+            });
+        }
 
-        elEmail.addEventListener('blur', function() {
-            const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (this.value.length > 0 && !regex.test(this.value)) {
-                errEmail.classList.remove('hidden');
-                setTimeout(() => this.focus(), 10);
-            } else {
-                errEmail.classList.add('hidden');
-            }
-        });
+        if(elEmail) {
+            elEmail.addEventListener('blur', function() {
+                const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (this.value.length > 0 && !regex.test(this.value)) {
+                    errEmail.classList.remove('hidden');
+                    setTimeout(() => this.focus(), 10);
+                } else {
+                    errEmail.classList.add('hidden');
+                }
+            });
+        }
 
         function checkRTRW(el) {
             if (el.value.length > 0 && el.value.length < 2) {
@@ -729,10 +744,8 @@
                 setTimeout(() => el.focus(), 10);
             }
         }
-        elRT.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); });
-        elRW.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); });
-        elRT.addEventListener('blur', function() { checkRTRW(this); });
-        elRW.addEventListener('blur', function() { checkRTRW(this); });
+        if(elRT) { elRT.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); }); elRT.addEventListener('blur', function() { checkRTRW(this); }); }
+        if(elRW) { elRW.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); }); elRW.addEventListener('blur', function() { checkRTRW(this); }); }
 
         document.querySelectorAll('input[inputmode="numeric"]:not(#inputKTP):not(#inputRT):not(#inputRW)').forEach(el => {
             el.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); });
@@ -755,7 +768,6 @@
             }
         }
         
-        // Pengecekan aman, event listener hanya dipasang jika elemen ditemukan
         if(elLamaTahun) elLamaTahun.addEventListener('blur', checkLamaBekerja);
         if(elLamaBulan) elLamaBulan.addEventListener('blur', checkLamaBekerja);
 
@@ -773,9 +785,9 @@
                 errTelpDarurat.classList.remove('hidden'); elTelpDarurat.setCustomValidity("Nomor tidak boleh sama!");
             } else { errTelpDarurat.classList.add('hidden'); elTelpDarurat.setCustomValidity(""); }
         }
-        elNamaDarurat.addEventListener('input', validasiKontakDarurat);
-        elTelpDarurat.addEventListener('input', validasiKontakDarurat);
-        elNoHP.addEventListener('input', validasiKontakDarurat);
+        if(elNamaDarurat) elNamaDarurat.addEventListener('input', validasiKontakDarurat);
+        if(elTelpDarurat) elTelpDarurat.addEventListener('input', validasiKontakDarurat);
+        if(elNoHP) elNoHP.addEventListener('input', validasiKontakDarurat);
 
         // ----------------------------------------------------
         // STATUS PERNIKAHAN & JUMLAH ANAK
@@ -803,42 +815,46 @@
             anakContainer.querySelectorAll('input').forEach(el => el.required = false);
         }
 
-        elStatus.addEventListener('change', function() {
-            const status = this.value;
-            resetStatusAnak();
-            
-            if (status && opsiAnak[status]) {
-                opsiAnak[status].forEach(opt => {
-                    const o = document.createElement('option');
-                    o.value = opt.val; o.textContent = opt.text;
-                    elAnak.appendChild(o);
-                });
-                elAnak.disabled = false;
-                elAnak.classList.remove('bg-gray-100'); elAnak.classList.add('bg-white');
-            } else {
-                elAnak.disabled = true;
-                elAnak.classList.remove('bg-white'); elAnak.classList.add('bg-gray-100');
-                elAnak.innerHTML = '<option value="">Pilih Status Dahulu</option>';
-            }
+        if(elStatus) {
+            elStatus.addEventListener('change', function() {
+                const status = this.value;
+                resetStatusAnak();
+                
+                if (status && opsiAnak[status]) {
+                    opsiAnak[status].forEach(opt => {
+                        const o = document.createElement('option');
+                        o.value = opt.val; o.textContent = opt.text;
+                        elAnak.appendChild(o);
+                    });
+                    elAnak.disabled = false;
+                    elAnak.classList.remove('bg-gray-100'); elAnak.classList.add('bg-white');
+                } else {
+                    elAnak.disabled = true;
+                    elAnak.classList.remove('bg-white'); elAnak.classList.add('bg-gray-100');
+                    elAnak.innerHTML = '<option value="">Pilih Status Dahulu</option>';
+                }
 
-            if (status === 'MARRIED') {
-                pasanganContainer.classList.remove('hidden');
-                document.getElementById('inputSuamiIstri').required = true;
-                document.getElementById('inputIbuMertua').required = true;
-                document.getElementById('inputAyahMertua').required = true;
-            }
-        });
+                if (status === 'MARRIED') {
+                    pasanganContainer.classList.remove('hidden');
+                    document.getElementById('inputSuamiIstri').required = true;
+                    document.getElementById('inputIbuMertua').required = true;
+                    document.getElementById('inputAyahMertua').required = true;
+                }
+            });
+        }
 
-        elAnak.addEventListener('change', function() {
-            const val = this.value;
-            if (val === 'K0' || val === 'TK0' || val === '') {
-                anakContainer.classList.add('hidden');
-                anakContainer.querySelectorAll('input').forEach(el => el.required = false);
-            } else {
-                anakContainer.classList.remove('hidden');
-                document.getElementById('inputAnak1').required = true;
-            }
-        });
+        if(elAnak) {
+            elAnak.addEventListener('change', function() {
+                const val = this.value;
+                if (val === 'K0' || val === 'TK0' || val === '') {
+                    anakContainer.classList.add('hidden');
+                    anakContainer.querySelectorAll('input').forEach(el => el.required = false);
+                } else {
+                    anakContainer.classList.remove('hidden');
+                    document.getElementById('inputAnak1').required = true;
+                }
+            });
+        }
 
         document.getElementById('pengalamanGarment').addEventListener('change', function() {
             const fields = document.getElementById('pengalamanFields');
@@ -1082,7 +1098,7 @@
             let prefixKab = (dataObj.kabupaten || "").toUpperCase().startsWith('KOTA') ? '' : 'KAB ';
             dataObj.alamatLengkap = `${dataObj.alamatDesa} RT${dataObj.rt} RW${dataObj.rw} KEL ${dataObj.kelurahan} KEC ${dataObj.kecamatan} ${prefixKab}${textKab}`.toUpperCase();
 
-            // PISAHKAN PENGIRIMAN: FIREBASE DAN SPREADSHEET (Mencegah gagal Spreadsheet jika Firebase error)
+            // PISAHKAN PENGIRIMAN FIREBASE DAN SPREADSHEET
             let isFirebaseSuccess = false;
             try {
                 if (db && auth && auth.currentUser) {
@@ -1094,14 +1110,12 @@
                 }
                 isFirebaseSuccess = true;
             } catch (err) {
-                console.log("Firebase block skipped", err);
-                globalEmployees.unshift(dataObj); renderTable();
-                isFirebaseSuccess = true;
+                console.log("Firebase error:", err);
             }
 
-            // DENGAN NO-CORS AGAR MASUK KE SPREADSHEET 100%
             let isSheetSuccess = false;
             try {
+                // KIRIM KE GOOGLE SHEET DENGAN MODE NO-CORS (MEMAKSA KIRIM)
                 await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST', 
                     mode: 'no-cors',
@@ -1110,7 +1124,7 @@
                 });
                 isSheetSuccess = true;
             } catch (err) {
-                console.error("Spreadsheet script error", err);
+                console.error("Spreadsheet error:", err);
             }
 
             loadingOverlay.classList.remove('active');
@@ -1272,14 +1286,11 @@
             loadingOverlay.classList.add('active');
 
             let successCount = 0;
-            // Kirim data satu per satu dari bawah ke atas (data terlama ke terbaru)
             const reversedData = [...globalEmployees].reverse(); 
 
             for (const emp of reversedData) {
                 try {
-                    // Buat salinan data
                     const dataToSend = { ...emp };
-                    
                     await fetch(GOOGLE_SCRIPT_URL, {
                         method: 'POST',
                         mode: 'no-cors',
@@ -1287,7 +1298,6 @@
                         body: JSON.stringify(dataToSend)
                     });
                     successCount++;
-                    // Delay 0.5 detik per data agar script Google tidak overload
                     await new Promise(r => setTimeout(r, 500)); 
                 } catch (err) {
                     console.error("Gagal sinkronisasi data:", err);
