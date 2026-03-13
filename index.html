@@ -338,22 +338,33 @@
 
         <!-- VIEW 2: DATABASE ADMIN -->
         <div id="viewAdmin" class="hidden fade-in bg-white rounded-2xl shadow-xl overflow-hidden w-full mx-auto border border-gray-100 flex-col h-[85vh] my-4">
-            <div class="bg-slate-800 p-4 md:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-white">
-                <div>
-                    <h1 class="text-xl md:text-2xl font-bold flex items-center gap-2">
-                        <i data-lucide="table-properties" class="w-5 h-5 md:w-6 md:h-6 text-blue-400"></i> Database Karyawan Baru
-                    </h1>
-                    <p class="text-slate-400 text-xs md:text-sm mt-1">Gunakan "Export Excel" untuk mengunduh seluruh data dalam format .xlsx</p>
+            <div class="bg-slate-800 p-4 md:p-6 flex flex-col justify-between items-start gap-4 text-white">
+                <div class="flex flex-col sm:flex-row justify-between w-full items-start sm:items-center gap-4">
+                    <div>
+                        <h1 class="text-xl md:text-2xl font-bold flex items-center gap-2">
+                            <i data-lucide="table-properties" class="w-5 h-5 md:w-6 md:h-6 text-blue-400"></i> Database Karyawan Baru
+                        </h1>
+                        <p class="text-slate-400 text-xs md:text-sm mt-1">Tarik Data dari Excel untuk menampilkan daftar.</p>
+                    </div>
+                    
+                    <!-- INDIKATOR STATUS SINKRONISASI -->
+                    <div class="flex items-center gap-2">
+                        <span id="syncBadge" class="text-xs font-semibold px-3 py-1.5 rounded-md bg-red-100 text-red-700 border border-red-200 flex items-center gap-1.5 transition-colors">
+                            <i data-lucide="x-circle" class="w-4 h-4"></i> Belum Sinkron
+                        </span>
+                    </div>
                 </div>
-                <div class="flex gap-2 flex-wrap w-full sm:w-auto">
+
+                <!-- TOMBOL-TOMBOL ADMIN -->
+                <div class="flex gap-2 flex-wrap w-full">
                     <button id="btnOpenChangePwd" class="flex-1 sm:flex-none px-3 py-2 bg-amber-600 hover:bg-amber-500 rounded-lg flex justify-center items-center gap-2 transition-colors text-xs md:text-sm font-medium shadow-md">
-                        <i data-lucide="key" class="w-4 h-4"></i> Ganti Password
+                        <i data-lucide="key" class="w-4 h-4"></i> Sandi
                     </button>
                     <button id="btnShareQR" class="flex-1 sm:flex-none px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg flex justify-center items-center gap-2 transition-colors text-xs md:text-sm font-medium shadow-md">
-                        <i data-lucide="qr-code" class="w-4 h-4"></i> Share QR
+                        <i data-lucide="qr-code" class="w-4 h-4"></i> QR Form
                     </button>
                     <button id="btnSyncSheet" class="flex-1 sm:flex-none px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg flex justify-center items-center gap-2 transition-colors text-xs md:text-sm font-medium shadow-md text-white">
-                        <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sync Spreadsheet
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i> Tarik Data (Sync)
                     </button>
                     <button id="btnExportExcel" class="flex-1 sm:flex-none px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg flex justify-center items-center gap-2 transition-colors text-xs md:text-sm font-medium shadow-md">
                         <i data-lucide="download" class="w-4 h-4"></i> Export Excel
@@ -405,7 +416,7 @@
                         </tr>
                     </thead>
                     <tbody id="tableBody" class="divide-y divide-gray-200 bg-white">
-                        <tr><td colspan="37" class="px-6 py-12 text-center text-gray-500">Memuat data / Belum ada data...</td></tr>
+                        <tr><td colspan="37" class="px-6 py-12 text-center text-gray-500">Klik "Tarik Data (Sync)" untuk memuat data dari Spreadsheet.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -485,15 +496,10 @@
         <span id="toastMessage" class="font-medium truncate">Pesan</span>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+    <script>
         // MENGGUNAKAN LINK DEPLOY ANDA YANG BARU
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfB9VMrfEo7r5Dmz6G7zSx6bMf5KKVgsDotFhWvh1UEeWkcQyQS5YGuhli-XujVfwUig/exec";
 
-        let app, auth, db, appId;
         let globalEmployees = [];
 
         lucide.createIcons();
@@ -522,12 +528,10 @@
         const elTglLahir = document.getElementById('inputTglLahir');
         const errTgl = document.getElementById('err-tgl');
         
-        // Hitung tanggal 17 tahun yang lalu dari hari ini
         const dt = new Date();
         dt.setFullYear(dt.getFullYear() - 17);
         const maxDateStr = dt.toISOString().split('T')[0];
         
-        // Set max atribut pada input kalender
         if(elTglLahir) {
             elTglLahir.setAttribute('max', maxDateStr);
             elTglLahir.addEventListener('change', function() {
@@ -536,7 +540,7 @@
                     errTgl.classList.remove('hidden');
                     elTglLahir.classList.add('border-red-500', 'text-red-600');
                     showToast("Usia minimal harus 17 Tahun!", "error");
-                    this.value = ''; // Kosongkan jika salah
+                    this.value = ''; 
                 } else {
                     errTgl.classList.add('hidden');
                     elTglLahir.classList.remove('border-red-500', 'text-red-600');
@@ -573,7 +577,6 @@
             loadingSubText.textContent = "Sedang menghapus background asli dan mengubah jadi putih. Ini butuh beberapa saat...";
 
             try {
-                // TAHAP 1: PRE-COMPRESSION
                 const preCompressedBlob = await new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = function(event) {
@@ -603,7 +606,6 @@
                     reader.readAsDataURL(file);
                 });
 
-                // TAHAP 2: PROSES AI HAPUS BACKGROUND
                 let transparentBlob = preCompressedBlob;
                 if (typeof imglyRemoveBackground !== 'undefined') {
                     transparentBlob = await imglyRemoveBackground(preCompressedBlob, {
@@ -611,7 +613,6 @@
                     });
                 }
 
-                // TAHAP 3: TAMBAHKAN WARNA PUTIH & EXPORT
                 const reader2 = new FileReader();
                 reader2.onload = function(event) {
                     const img = new Image();
@@ -621,7 +622,6 @@
                         canvas.height = img.height;
                         
                         const ctx = canvas.getContext('2d');
-                        
                         ctx.fillStyle = '#FFFFFF';
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
                         ctx.drawImage(img, 0, 0);
@@ -652,14 +652,13 @@
         if(inputFotoGaleri) inputFotoGaleri.addEventListener('change', handleFotoUpload);
 
         // ----------------------------------------------------
-        // LOGIKA HURUF BESAR (UPPERCASE) OTOMATIS (Aman dari Bug)
+        // LOGIKA HURUF BESAR (UPPERCASE) OTOMATIS
         // ----------------------------------------------------
         document.addEventListener('input', function(e) {
             const tag = e.target.tagName.toLowerCase();
             if (tag === 'input' || tag === 'textarea') {
                 const type = e.target.type.toLowerCase();
                 
-                // Jangan paksa huruf besar untuk input yang rentan error
                 const unsupportedTypes = ['checkbox', 'radio', 'file', 'number', 'date', 'datetime-local', 'month', 'time', 'week', 'range', 'color'];
                 if (unsupportedTypes.includes(type)) return;
                 if (e.target.getAttribute('inputmode') === 'numeric') return;
@@ -677,9 +676,7 @@
                     if (e.target.setSelectionRange) {
                         e.target.setSelectionRange(start, end);
                     }
-                } catch(err) {
-                    // Abaikan jika browser menolak (aman dari layar putih)
-                }
+                } catch(err) {}
             }
         });
 
@@ -913,6 +910,9 @@
                 viewForm.style.display = 'none'; viewAdmin.style.display = 'flex';
                 btnViewAdmin.classList.add('bg-white', 'shadow-sm', 'text-blue-600'); btnViewAdmin.classList.remove('text-gray-500');
                 btnViewForm.classList.remove('bg-white', 'shadow-sm', 'text-blue-600'); btnViewForm.classList.add('text-gray-500');
+                
+                // OTOMATIS SINKRONISASI SAAT MASUK KE MENU ADMIN
+                fetchSpreadsheetData();
             } else {
                 showToast('Password yang Anda masukkan salah!', 'error');
             }
@@ -937,33 +937,6 @@
             showToast('Password Admin berhasil diubah!', 'success');
             changePwdModal.classList.add('hidden'); changePwdModal.classList.remove('flex');
         });
-
-
-        // ----------------------------------------------------
-        // INISIALISASI FIREBASE
-        // ----------------------------------------------------
-        const initAuthData = async () => {
-            try {
-                const fbConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { projectId: "demo-app" };
-                appId = typeof __app_id !== 'undefined' ? __app_id : 'karyawan-app-demo';
-                app = initializeApp(fbConfig); auth = getAuth(app); db = getFirestore(app);
-                
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) { await signInWithCustomToken(auth, __initial_auth_token); } 
-                else { await signInAnonymously(auth); }
-
-                onAuthStateChanged(auth, (user) => {
-                    if (user && db) {
-                        const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'employees'));
-                        onSnapshot(q, (snapshot) => {
-                            globalEmployees = snapshot.docs.map(doc => doc.data());
-                            globalEmployees.sort((a,b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
-                            renderTable();
-                        }, (error) => console.error("Snapshot error:", error));
-                    }
-                });
-            } catch(e) { console.log("Berjalan Mode Lokal / Script"); }
-        };
-        initAuthData();
 
         // ----------------------------------------------------
         // API WILAYAH (EMSIFA)
@@ -1048,7 +1021,7 @@
         });
 
         // ----------------------------------------------------
-        // LOGIKA SUBMIT FORM
+        // LOGIKA SUBMIT FORM (MENGIRIM DATA KE SPREADSHEET)
         // ----------------------------------------------------
         document.getElementById('karyawanForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1056,7 +1029,6 @@
             if(elKTP.value.length !== 16) { showToast("Pengisian Gagal! Nomor KTP Wajib 16 Digit.", "error"); elKTP.focus(); return; }
             if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(elEmail.value) && elEmail.value !== "") { showToast("Format Email Tidak Valid!", "error"); elEmail.focus(); return; }
 
-            // Pengecekan Usia Minimal
             if (!elTglLahir.value) {
                  showToast("Isi Tanggal Lahir Anda!", "error"); elTglLahir.focus(); return;
             } else {
@@ -1075,14 +1047,13 @@
 
             const loadingOverlay = document.getElementById('loadingOverlay');
             document.getElementById('loadingText').textContent = "Menyimpan Data...";
-            document.getElementById('loadingSubText').textContent = "Mohon tunggu, mengirim data ke server...";
+            document.getElementById('loadingSubText').textContent = "Mengirim data ke Spreadsheet. Mohon tunggu...";
             loadingOverlay.classList.add('active');
 
             const fd = new FormData(e.target);
             const dataObj = Object.fromEntries(fd.entries());
             dataObj.waktu = new Date().toLocaleString('id-ID');
 
-            // Penggabungan Tahun & Bulan untuk Lama Bekerja
             if(document.getElementById('pengalamanGarment').value === 'YA') {
                 const thn = elLamaTahun ? elLamaTahun.value : '';
                 const bln = elLamaBulan ? elLamaBulan.value : '';
@@ -1098,55 +1069,81 @@
             let prefixKab = (dataObj.kabupaten || "").toUpperCase().startsWith('KOTA') ? '' : 'KAB ';
             dataObj.alamatLengkap = `${dataObj.alamatDesa} RT${dataObj.rt} RW${dataObj.rw} KEL ${dataObj.kelurahan} KEC ${dataObj.kecamatan} ${prefixKab}${textKab}`.toUpperCase();
 
-            // PISAHKAN PENGIRIMAN FIREBASE DAN SPREADSHEET
-            let isFirebaseSuccess = false;
             try {
-                if (db && auth && auth.currentUser) {
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), {
-                        ...dataObj, timestamp: serverTimestamp()
-                    });
-                } else {
-                    globalEmployees.unshift(dataObj); renderTable();
-                }
-                isFirebaseSuccess = true;
-            } catch (err) {
-                console.log("Firebase error:", err);
-            }
+                // KIRIM MENGGUNAKAN METODE URLSearchParams (MENCEGAH BLOKIR BROWSER)
+                const formDataParams = new URLSearchParams();
+                formDataParams.append("data", JSON.stringify(dataObj));
 
-            let isSheetSuccess = false;
-            try {
-                // KIRIM KE GOOGLE SHEET DENGAN MODE NO-CORS (MEMAKSA KIRIM)
                 await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST', 
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(dataObj)
+                    body: formDataParams
                 });
-                isSheetSuccess = true;
-            } catch (err) {
-                console.error("Spreadsheet error:", err);
-            }
-
-            loadingOverlay.classList.remove('active');
-
-            if (isFirebaseSuccess || isSheetSuccess) {
+                
+                loadingOverlay.classList.remove('active');
                 document.getElementById('formContainer').classList.add('hidden');
                 document.getElementById('successMessage').classList.remove('hidden');
                 window.scrollTo(0, 0);
-            } else {
-                showToast('Terjadi kesalahan koneksi. Gagal mengirim data.', 'error');
+                
+                // Ubah status lencana jika ada yang submit baru (perlu ditarik)
+                const syncBadge = document.getElementById('syncBadge');
+                syncBadge.className = "text-xs font-semibold px-3 py-1.5 rounded-md bg-red-100 text-red-700 border border-red-200 flex items-center gap-1.5 transition-colors";
+                syncBadge.innerHTML = `<i data-lucide="x-circle" class="w-4 h-4"></i> Data Baru! Perlu Sync`;
+                lucide.createIcons();
+
+            } catch (err) {
+                loadingOverlay.classList.remove('active');
+                showToast('Gagal mengirim data. Periksa jaringan Anda.', 'error');
             }
         });
 
+        // ----------------------------------------------------
+        // MENARIK DATA DARI SPREADSHEET (MEMBERIKAN TANDA WARNA)
+        // ----------------------------------------------------
+        async function fetchSpreadsheetData() {
+            const tbody = document.getElementById('tableBody');
+            const syncBadge = document.getElementById('syncBadge');
+            
+            tbody.innerHTML = '<tr><td colspan="37" class="px-6 py-12 text-center text-blue-600"><div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mx-auto mb-2"></div>Menarik data dari Spreadsheet... Mohon tunggu.</td></tr>';
+            
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL);
+                const data = await response.json();
+                
+                if(data.error) {
+                    showToast("Error membaca Spreadsheet: " + data.error, "error");
+                    tbody.innerHTML = '<tr><td colspan="37" class="px-6 py-12 text-center text-red-500">Gagal memuat. Pastikan pengaturan Deploy Google Script disetel ke "Siapa saja" (Anyone).</td></tr>';
+                    return;
+                }
+                
+                globalEmployees = data;
+                renderTable();
+                showToast("Data berhasil disinkronisasi dengan Spreadsheet!", "success");
+                
+                // UBAH BADGE JADI WARNA HIJAU JIKA SUKSES
+                syncBadge.className = "text-xs font-semibold px-3 py-1.5 rounded-md bg-green-100 text-green-700 border border-green-200 flex items-center gap-1.5 transition-colors fade-in";
+                const now = new Date();
+                const timeString = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
+                syncBadge.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4"></i> Sinkron: ${timeString}`;
+                lucide.createIcons();
+
+            } catch(e) {
+                console.error(e);
+                showToast("Gagal mengambil data dari Google Sheet.", "error");
+                tbody.innerHTML = '<tr><td colspan="37" class="px-6 py-12 text-center text-red-500">Gagal terhubung ke Spreadsheet. Periksa koneksi internet Anda.</td></tr>';
+            }
+        }
+
+        document.getElementById('btnSyncSheet').addEventListener('click', fetchSpreadsheetData);
+
         function renderTable() {
             const tbody = document.getElementById('tableBody');
-            if(globalEmployees.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="37" class="px-6 py-12 text-center text-gray-500">Belum ada data karyawan.</td></tr>`; return;
+            if(!globalEmployees || globalEmployees.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="37" class="px-6 py-12 text-center text-gray-500">Belum ada data karyawan / Data kosong.</td></tr>`; return;
             }
             tbody.innerHTML = globalEmployees.map(emp => `
-                <tr class="hover:bg-blue-50 transition-colors">
-                    <td class="px-4 py-3 text-xs text-gray-500">${emp.waktu || (emp.timestamp ? new Date(emp.timestamp.toDate()).toLocaleString('id-ID') : '-')}</td>
-                    <td class="px-4 py-3 font-medium text-blue-600 underline"><a href="${emp.fotoUrl || '#'}" target="_blank">Lihat Foto</a></td>
+                <tr class="hover:bg-blue-50 transition-colors border-b border-gray-100">
+                    <td class="px-4 py-3 text-xs text-gray-500">${emp.waktu || '-'}</td>
+                    <td class="px-4 py-3 font-medium text-blue-600 underline">${emp.fotoUrl && emp.fotoUrl.startsWith('http') ? `<a href="${emp.fotoUrl}" target="_blank">Lihat Foto</a>` : '-'}</td>
                     <td class="px-4 py-3 font-medium text-gray-900">${emp.namaLengkap || '-'}</td>
                     <td class="px-4 py-3">${emp.pengalamanGarment || '-'}</td>
                     <td class="px-4 py-3">${emp.namaPerusahaan || '-'}</td>
@@ -1186,9 +1183,6 @@
             `).join('');
         }
 
-        // ==================================================
-        // REFRESH & RESET
-        // ==================================================
         document.getElementById('btnResetForm').addEventListener('click', function() {
             window.location.reload();
         });
@@ -1233,79 +1227,31 @@
         });
 
         document.getElementById('btnExportExcel').addEventListener('click', function() {
-            if(!window.XLSX) { showToast("Pustaka Excel sedang dimuat, coba lagi sebentar.", 'error'); return; }
-            if(globalEmployees.length === 0) { showToast("Belum ada data untuk diekspor.", 'error'); return; }
+            if(!window.XLSX) { showToast("Pustaka Excel sedang dimuat.", 'error'); return; }
+            if(globalEmployees.length === 0) { showToast("Belum ada data.", 'error'); return; }
 
             const formattedData = globalEmployees.map(emp => ({
-                'Waktu Pengisian': emp.waktu || (emp.timestamp ? new Date(emp.timestamp.toDate()).toLocaleString('id-ID') : '-'),
-                'Foto Karyawan (URL)': emp.fotoUrl || 'Link Foto Dibuat di Spreadsheet Google',
-                'Nama Lengkap': emp.namaLengkap || '',
-                'Pengalaman Garment YA/TIDAK': emp.pengalamanGarment || '',
-                'Nama Perusahaan': emp.namaPerusahaan || '',
-                'BAGIAN': emp.bagian || '', 'LAMA BEKERJA': emp.lamaBekerja || '',
-                'Jenis Kelamin': emp.jenisKelamin || '',
-                'Tempat Lahir': emp.tempatLahir || '', 'Tanggal Lahir': emp.tanggalLahir || '',
-                'Status Pernikahan': emp.statusPernikahan || '',
-                'Jumlah anak': emp.jumlahAnak || '',
-                'Agama': emp.agama || '', 'Alamat Email': emp.alamatEmail || '',
-                'No Handphone Aktif': emp.noHandphone || '', 'Nomor KTP': emp.nomorKTP || '',
-                'Provinsi': emp.provinsi || '', 'Kabupaten': emp.kabupaten || '',
-                'Kecamatan': emp.kecamatan || '', 'Kelurahan': emp.kelurahan || '',
-                'RT': emp.rt || '', 'RW': emp.rw || '', 'Alamat (Desa/Dukuh)': emp.alamatDesa || '',
+                'Waktu Pengisian': emp.waktu || '', 'Foto Karyawan (URL)': emp.fotoUrl || '',
+                'Nama Lengkap': emp.namaLengkap || '', 'Pengalaman Garment YA/TIDAK': emp.pengalamanGarment || '',
+                'Nama Perusahaan': emp.namaPerusahaan || '', 'BAGIAN': emp.bagian || '', 'LAMA BEKERJA': emp.lamaBekerja || '',
+                'Jenis Kelamin': emp.jenisKelamin || '', 'Tempat Lahir': emp.tempatLahir || '', 'Tanggal Lahir': emp.tanggalLahir || '',
+                'Status Pernikahan': emp.statusPernikahan || '', 'Jumlah anak': emp.jumlahAnak || '', 'Agama': emp.agama || '', 
+                'Alamat Email': emp.alamatEmail || '', 'No Handphone Aktif': emp.noHandphone || '', 'Nomor KTP': emp.nomorKTP || '',
+                'Provinsi': emp.provinsi || '', 'Kabupaten': emp.kabupaten || '', 'Kecamatan': emp.kecamatan || '', 
+                'Kelurahan': emp.kelurahan || '', 'RT': emp.rt || '', 'RW': emp.rw || '', 'Alamat (Desa/Dukuh)': emp.alamatDesa || '',
                 'Pendidikan Terakhir': emp.pendidikanTerakhir || '', 'Jurusan Sekolah': emp.jurusanSekolah || '',
                 'Nama Ibu Kandung': emp.namaIbuKandung || '', 'Nama Ayah Kandung': emp.namaAyahKandung || '',
                 'Nama Suami/Istri': emp.namaSuamiIstri || '', 'Nama Ibu Mertua': emp.namaIbuMertua || '',
-                'Nama Ayah Mertua': emp.namaAyahMertua || '',
-                'Nama Anak Pertama': emp.namaAnak1 || '', 'Nama Anak Kedua': emp.namaAnak2 || '',
-                'Nama Anak Ketiga': emp.namaAnak3 || '',
+                'Nama Ayah Mertua': emp.namaAyahMertua || '', 'Nama Anak Pertama': emp.namaAnak1 || '', 
+                'Nama Anak Kedua': emp.namaAnak2 || '', 'Nama Anak Ketiga': emp.namaAnak3 || '',
                 'Nama Kontak Darurat': emp.namaKontakDarurat || '', 'No telp kontak darurat': emp.noTelpDarurat || '',
-                'Hubungan': emp.hubungan || '',
-                'Alamat Lengkap (Gabungan)': emp.alamatLengkap || ''
+                'Hubungan': emp.hubungan || '', 'Alamat Lengkap (Gabungan)': emp.alamatLengkap || ''
             }));
 
             const worksheet = XLSX.utils.json_to_sheet(formattedData);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Data Karyawan");
             XLSX.writeFile(workbook, "Database_Karyawan_Baru.xlsx");
-        });
-
-        // ==================================================
-        // SINKRONISASI KE SPREADSHEET (MANUAL SYNC)
-        // ==================================================
-        document.getElementById('btnSyncSheet').addEventListener('click', async function() {
-            if(globalEmployees.length === 0) {
-                showToast("Belum ada data untuk disinkronkan.", "error");
-                return;
-            }
-            
-            if(!confirm("Kirim ulang seluruh data ke Google Spreadsheet? (Gunakan fitur ini jika ada data yang sebelumnya gagal masuk ke excel)")) return;
-
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            document.getElementById('loadingText').textContent = "Sinkronisasi Data...";
-            document.getElementById('loadingSubText').textContent = "Mengirim ulang ke Spreadsheet. Mohon tunggu sebentar...";
-            loadingOverlay.classList.add('active');
-
-            let successCount = 0;
-            const reversedData = [...globalEmployees].reverse(); 
-
-            for (const emp of reversedData) {
-                try {
-                    const dataToSend = { ...emp };
-                    await fetch(GOOGLE_SCRIPT_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify(dataToSend)
-                    });
-                    successCount++;
-                    await new Promise(r => setTimeout(r, 500)); 
-                } catch (err) {
-                    console.error("Gagal sinkronisasi data:", err);
-                }
-            }
-
-            loadingOverlay.classList.remove('active');
-            showToast(`Selesai! ${successCount} data telah dikirim ulang ke Spreadsheet.`, "success");
         });
     </script>
 </body>
