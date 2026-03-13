@@ -577,9 +577,10 @@
 
             loadingOverlay.classList.add('active');
             loadingText.textContent = "Memproses Pas Foto...";
-            loadingSubText.textContent = "Sedang menghapus background asli dan mengubah jadi putih. Ini butuh beberapa saat...";
+            loadingSubText.textContent = "Menyesuaikan ukuran foto...";
 
             try {
+                // TAHAP 1: PRE-COMPRESSION
                 const preCompressedBlob = await new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = function(event) {
@@ -609,13 +610,31 @@
                     reader.readAsDataURL(file);
                 });
 
+                // TAHAP 2: PROSES AI HAPUS BACKGROUND
                 let transparentBlob = preCompressedBlob;
-                if (typeof imglyRemoveBackground !== 'undefined') {
-                    transparentBlob = await imglyRemoveBackground(preCompressedBlob, {
-                        publicPath: "https://unpkg.com/@imgly/background-removal@1.4.3/dist/"
-                    });
+                loadingSubText.textContent = "Menghapus background... (Butuh koneksi internet stabil)";
+                
+                try {
+                    // Pengecekan ekstra untuk memastikan library benar-benar siap dipanggil
+                    if (typeof window.imglyRemoveBackground === 'function' || typeof imglyRemoveBackground === 'function') {
+                        const bgRemovalFn = typeof imglyRemoveBackground === 'function' ? imglyRemoveBackground : window.imglyRemoveBackground;
+                        
+                        transparentBlob = await bgRemovalFn(preCompressedBlob, {
+                            publicPath: "https://unpkg.com/@imgly/background-removal@1.4.3/dist/"
+                        });
+                    } else {
+                        console.warn("Library AI belum termuat sempurna");
+                        showToast("Library AI belum siap, menggunakan foto asli.", "error");
+                    }
+                } catch (aiErr) {
+                    console.error("AI Removal gagal:", aiErr);
+                    showToast("Gagal menghapus background secara otomatis.", "error");
+                    // Tetap lanjut menggunakan foto asli karena transparentBlob masih bernilai preCompressedBlob
                 }
 
+                // TAHAP 3: TAMBAHKAN WARNA PUTIH & EXPORT
+                loadingSubText.textContent = "Menyempurnakan hasil...";
+                
                 const reader2 = new FileReader();
                 reader2.onload = function(event) {
                     const img = new Image();
@@ -632,11 +651,11 @@
                         const finalDataUrl = canvas.toDataURL('image/jpeg', 0.8);
                         fotoBase64Data = finalDataUrl.split(',')[1];
                         
-                        fotoPreview.src = finalDataUrl;
-                        fotoPreviewContainer.classList.remove('hidden');
+                        if(fotoPreview) fotoPreview.src = finalDataUrl;
+                        if(fotoPreviewContainer) fotoPreviewContainer.classList.remove('hidden');
                         
                         loadingOverlay.classList.remove('active');
-                        showToast("Pas foto background putih berhasil disiapkan!", "success");
+                        showToast("Pas foto berhasil disiapkan!", "success");
                     };
                     img.src = event.target.result;
                 };
@@ -1166,6 +1185,7 @@
                 dataObj.alamatLengkap = `${dataObj.alamatDesa} RT${dataObj.rt.replace(/'/g,'')} RW${dataObj.rw.replace(/'/g,'')} KEL ${dataObj.kelurahan} KEC ${dataObj.kecamatan} ${prefixKab}${textKab}`.toUpperCase();
 
                 try {
+                    // KIRIM MENGGUNAKAN METODE URLSearchParams (MENCEGAH BLOKIR BROWSER)
                     const formDataParams = new URLSearchParams();
                     formDataParams.append("data", JSON.stringify(dataObj));
 
