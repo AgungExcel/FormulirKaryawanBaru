@@ -5,19 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Formulir Karyawan Baru - PT Hop Lun Indonesia</title>
     
-    <!-- Favicon -->
     <link rel="icon" type="image/png" href="hoplun128.png">
-    
-    <!-- Tailwind CSS (Desain Responsif) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- SheetJS (Export Excel) -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-
-    <!-- AI Background Removal -->
     <script src="https://unpkg.com/@imgly/background-removal@1.4.3/dist/imgly-background-removal.iife.min.js"></script>
 
     <style>
@@ -25,7 +16,6 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         #loadingOverlay { display: none; }
         #loadingOverlay.active { display: flex; }
-        /* Hilangkan panah up/down di input number */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
@@ -209,7 +199,7 @@
                                         <option value="TIDAK">TIDAK</option>
                                     </select></div>
                                 
-                                <!-- Update: Kolom Tahun dan Bulan untuk Lama Bekerja -->
+                                <!-- Bagian Tahun dan Bulan untuk Lama Bekerja (Telah Dipisah) -->
                                 <div id="pengalamanFields" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 bg-white p-4 rounded-xl border border-gray-200 mt-2 w-full">
                                     <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Nama Perusahaan</label>
                                         <input type="text" id="inputNamaPerusahaan" name="namaPerusahaan" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none uppercase"></div>
