@@ -1249,7 +1249,8 @@
                 if (!url) return '';
                 const match = url.match(/\/d\/(.+?)\//);
                 if (match && match[1]) {
-                    return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+                    // Menggunakan endpoint thumbnail Google Drive yang lebih stabil & diizinkan browser
+                    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w150-h200`;
                 }
                 return url;
             };
@@ -1261,8 +1262,8 @@
                     <td class="px-4 py-3 text-xs text-gray-500">${emp.waktu || '-'}</td>
                     <td class="px-4 py-3 font-medium text-center">
                         ${emp.fotoUrl && emp.fotoUrl.startsWith('http') 
-                            ? `<a href="${emp.fotoUrl}" target="_blank" title="Klik untuk ukuran penuh">
-                                 <img src="${previewImg}" alt="Foto" class="w-10 h-14 sm:w-12 sm:h-16 object-cover rounded border border-gray-300 shadow-sm mx-auto hover:opacity-80 transition-opacity" onerror="this.onerror=null; this.outerHTML='<a href=\\'${emp.fotoUrl}\\' target=\\'_blank\\' class=\\'text-blue-600 underline\\'>Lihat Foto</a>';">
+                            ? `<a href="${emp.fotoUrl}" target="_blank" title="Klik untuk ukuran penuh" style="display:inline-block;">
+                                 <img src="${previewImg}" alt="Foto" class="w-10 h-14 sm:w-12 sm:h-16 object-cover rounded border border-gray-300 shadow-sm mx-auto hover:opacity-80 transition-opacity" onerror="this.onerror=null; this.parentElement.innerHTML='<span class=\\'text-blue-600 underline text-xs\\'>Lihat Foto</span>';">
                                </a>` 
                             : '<span class="text-gray-400 text-xs">-</span>'}
                     </td>
