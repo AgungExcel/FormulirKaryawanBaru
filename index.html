@@ -369,6 +369,10 @@
                     <button id="btnExportExcel" class="flex-1 sm:flex-none px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg flex justify-center items-center gap-2 transition-colors text-xs md:text-sm font-medium shadow-md">
                         <i data-lucide="download" class="w-4 h-4"></i> Export Excel
                     </button>
+                    <!-- TOMBOL DOWNLOAD SEMUA FOTO BARU -->
+                    <button id="btnDownloadPhotos" class="flex-1 sm:flex-none px-3 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg flex justify-center items-center gap-2 transition-colors text-xs md:text-sm font-medium shadow-md text-white">
+                        <i data-lucide="images" class="w-4 h-4"></i> Download Semua Foto
+                    </button>
                 </div>
             </div>
 
@@ -549,7 +553,7 @@
         }
 
         // ----------------------------------------------------
-        // UPLOAD FOTO (KAMERA / GALERI) & AI BACKGROUND REMOVAL
+        // UPLOAD FOTO & AI BACKGROUND REMOVAL (DISEMPURNAKAN)
         // ----------------------------------------------------
         let fotoBase64Data = "";
         let fotoFileName = "";
@@ -580,14 +584,14 @@
             loadingSubText.textContent = "Menyesuaikan ukuran foto...";
 
             try {
-                // TAHAP 1: PRE-COMPRESSION
+                // TAHAP 1: PRE-COMPRESSION (Lebih kecil agar AI tidak memakan banyak memori HP)
                 const preCompressedBlob = await new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = function(event) {
                         const img = new Image();
                         img.onload = function() {
                             const canvas = document.createElement('canvas');
-                            const MAX_WIDTH = 800; 
+                            const MAX_WIDTH = 600; 
                             let width = img.width;
                             let height = img.height;
                             
@@ -612,24 +616,22 @@
 
                 // TAHAP 2: PROSES AI HAPUS BACKGROUND
                 let transparentBlob = preCompressedBlob;
+                let bgRemoved = false;
                 loadingSubText.textContent = "Menghapus background... (Butuh koneksi internet stabil)";
                 
                 try {
-                    // Pengecekan ekstra untuk memastikan library benar-benar siap dipanggil
                     if (typeof window.imglyRemoveBackground === 'function' || typeof imglyRemoveBackground === 'function') {
                         const bgRemovalFn = typeof imglyRemoveBackground === 'function' ? imglyRemoveBackground : window.imglyRemoveBackground;
                         
                         transparentBlob = await bgRemovalFn(preCompressedBlob, {
                             publicPath: "https://unpkg.com/@imgly/background-removal@1.4.3/dist/"
                         });
+                        bgRemoved = true;
                     } else {
                         console.warn("Library AI belum termuat sempurna");
-                        showToast("Library AI belum siap, menggunakan foto asli.", "error");
                     }
                 } catch (aiErr) {
                     console.error("AI Removal gagal:", aiErr);
-                    showToast("Gagal menghapus background secara otomatis.", "error");
-                    // Tetap lanjut menggunakan foto asli karena transparentBlob masih bernilai preCompressedBlob
                 }
 
                 // TAHAP 3: TAMBAHKAN WARNA PUTIH & EXPORT
@@ -655,7 +657,13 @@
                         if(fotoPreviewContainer) fotoPreviewContainer.classList.remove('hidden');
                         
                         loadingOverlay.classList.remove('active');
-                        showToast("Pas foto berhasil disiapkan!", "success");
+                        
+                        // Cek status keberhasilan AI untuk Feedback ke user
+                        if(bgRemoved) {
+                            showToast("Pas foto background putih berhasil disiapkan!", "success");
+                        } else {
+                            showToast("Foto tersimpan (AI gagal menghapus background karena memori HP atau Sinyal).", "error");
+                        }
                     };
                     img.src = event.target.result;
                 };
@@ -1185,7 +1193,6 @@
                 dataObj.alamatLengkap = `${dataObj.alamatDesa} RT${dataObj.rt.replace(/'/g,'')} RW${dataObj.rw.replace(/'/g,'')} KEL ${dataObj.kelurahan} KEC ${dataObj.kecamatan} ${prefixKab}${textKab}`.toUpperCase();
 
                 try {
-                    // KIRIM MENGGUNAKAN METODE URLSearchParams (MENCEGAH BLOKIR BROWSER)
                     const formDataParams = new URLSearchParams();
                     formDataParams.append("data", JSON.stringify(dataObj));
 
@@ -1269,7 +1276,7 @@
                 if (!url) return '';
                 const match = url.match(/\/d\/(.+?)\//);
                 if (match && match[1]) {
-                    // Menggunakan endpoint thumbnail Google Drive yang lebih stabil & diizinkan browser
+                    // Menggunakan endpoint thumbnail Google Drive yang lebih stabil
                     return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w150-h200`;
                 }
                 return url;
@@ -1422,6 +1429,46 @@
                 const workbook = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(workbook, worksheet, "Data Karyawan");
                 XLSX.writeFile(workbook, "Database_Karyawan_Baru.xlsx");
+            });
+        }
+
+        // ----------------------------------------------------
+        // FITUR DOWNLOAD SEMUA FOTO
+        // ----------------------------------------------------
+        const btnDownloadPhotos = document.getElementById('btnDownloadPhotos');
+        if(btnDownloadPhotos) {
+            btnDownloadPhotos.addEventListener('click', async () => {
+                if(!globalEmployees || globalEmployees.length === 0) {
+                    showToast("Tarik (Sync) data dari Spreadsheet terlebih dahulu.", "error"); return;
+                }
+                const withPhotos = globalEmployees.filter(e => e.fotoUrl && e.fotoUrl.includes('/d/'));
+                if(withPhotos.length === 0) {
+                    showToast("Tidak ada file foto untuk didownload.", "error"); return;
+                }
+                
+                if(!confirm(`Ditemukan ${withPhotos.length} foto. Buka dan download semua sekarang? (Catatan: Browser mungkin akan meminta izin untuk download file ganda)`)) return;
+
+                showToast(`Memulai proses download ${withPhotos.length} foto...`, "success");
+                
+                for(let i = 0; i < withPhotos.length; i++) {
+                    const emp = withPhotos[i];
+                    const match = emp.fotoUrl.match(/\/d\/(.+?)\//);
+                    if(match) {
+                        const fileId = match[1];
+                        // Link direct download Google Drive, format penamaan akan otomatis diambil dari GDrive sesuai Nama Lengkap Pelamar
+                        const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+                        
+                        const a = document.createElement('a');
+                        a.href = downloadUrl;
+                        a.target = '_blank';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        
+                        // Jeda waktu 1,5 detik per foto agar browser tidak macet / blokir massal
+                        await new Promise(r => setTimeout(r, 1500)); 
+                    }
+                }
             });
         }
     </script>
