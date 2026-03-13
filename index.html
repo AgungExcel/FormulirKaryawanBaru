@@ -17,9 +17,6 @@
     <!-- SheetJS (Export Excel) -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
-    <!-- AI Background Removal - Diganti dengan Google MediaPipe (Super Ringan Anti-Macet) -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js" crossorigin="anonymous"></script>
-
     <style>
         .fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -316,7 +313,7 @@
                                 <i data-lucide="camera" class="w-5 h-5 text-blue-600"></i> Pas Foto Resmi
                             </h2>
                             <div class="space-y-3">
-                                <label class="text-sm font-medium text-gray-700">Silakan pilih metode upload foto: <span class="text-gray-500 font-normal italic ml-1">(Tidak Wajib)</span></label>
+                                <label class="text-sm font-medium text-gray-700">Silakan pilih metode upload foto: <span class="text-gray-500 font-normal italic ml-1">(WAJIB)</span></label>
                                 
                                 <input type="file" id="inputFotoKamera" accept="image/*" capture="environment" class="hidden">
                                 <input type="file" id="inputFotoGaleri" accept="image/*" class="hidden">
@@ -330,7 +327,7 @@
                                     </button>
                                 </div>
                                 
-                                <p class="text-xs text-gray-500 mt-3">Sistem otomatis akan memproses foto Anda menjadi pas foto resmi berlatar putih.</p>
+                                <p class="text-xs text-gray-500 mt-3">Sistem otomatis memotong foto menjadi rasio Pas Foto (3x4). <b>Mohon berfoto di depan dinding yang polos.</b></p>
                                 <div id="fotoPreviewContainer" class="hidden mt-4 text-center sm:text-left">
                                     <p class="text-xs font-bold text-green-600 mb-2">Hasil Foto Terunggah:</p>
                                     <img id="fotoPreview" src="" class="w-32 h-40 object-cover rounded-lg border-2 border-blue-400 shadow-md mx-auto sm:mx-0" alt="Preview Foto">
@@ -612,7 +609,7 @@
         }
 
         // ----------------------------------------------------
-        // UPLOAD FOTO & AI BACKGROUND REMOVAL (MENGGUNAKAN MEDIAPIPE)
+        // UPLOAD FOTO & AUTO-CROP 3x4 (TANPA AI, 100% STABIL)
         // ----------------------------------------------------
         let fotoBase64Data = "";
         let fotoFileName = "";
@@ -640,30 +637,46 @@
 
             loadingOverlay.classList.add('active');
             loadingText.textContent = "Memproses Pas Foto...";
-            loadingSubText.textContent = "Menyesuaikan ukuran foto...";
+            loadingSubText.textContent = "Memotong dan menyesuaikan rasio ukuran...";
 
             try {
-                // TAHAP 1: PRE-COMPRESSION - Paksa ukuran optimal (Maks lebar 500px)
-                const resizedDataUrl = await new Promise((resolve, reject) => {
+                const finalDataUrl = await new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = function(event) {
                         const img = new Image();
                         img.onload = function() {
                             const canvas = document.createElement('canvas');
-                            const MAX_WIDTH = 500; 
-                            let width = img.width;
-                            let height = img.height;
-                            
-                            if (width > MAX_WIDTH) {
-                                height *= MAX_WIDTH / width;
-                                width = MAX_WIDTH;
-                            }
-                            canvas.width = width;
-                            canvas.height = height;
+                            // Target Ukuran Pas Foto (Rasio 3:4)
+                            const targetWidth = 450; 
+                            const targetHeight = 600;
+                            canvas.width = targetWidth;
+                            canvas.height = targetHeight;
                             
                             const ctx = canvas.getContext('2d');
-                            ctx.drawImage(img, 0, 0, width, height);
                             
+                            // Logika Pemotongan Tengah (Center Crop)
+                            let sourceX = 0, sourceY = 0, sourceWidth = img.width, sourceHeight = img.height;
+                            const imgRatio = img.width / img.height;
+                            const targetRatio = targetWidth / targetHeight;
+
+                            if (imgRatio > targetRatio) {
+                                // Gambar kepanjangan ke samping (Landscape) -> Potong kanan kiri
+                                sourceWidth = img.height * targetRatio;
+                                sourceX = (img.width - sourceWidth) / 2;
+                            } else {
+                                // Gambar ketinggian (Portrait) -> Potong atas bawah sedikit
+                                sourceHeight = img.width / targetRatio;
+                                sourceY = (img.height - sourceHeight) / 2;
+                            }
+
+                            // Latar putih (jika ada bagian transparan)
+                            ctx.fillStyle = '#FFFFFF';
+                            ctx.fillRect(0, 0, targetWidth, targetHeight);
+                            
+                            // Menggambar foto yang sudah dipotong (crop) ke canvas
+                            ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, targetWidth, targetHeight);
+                            
+                            // Konversi ke format JPEG dengan kualitas 90%
                             resolve(canvas.toDataURL('image/jpeg', 0.9));
                         };
                         img.onerror = reject;
@@ -673,81 +686,17 @@
                     reader.readAsDataURL(file);
                 });
 
-                // TAHAP 2: GOOGLE MEDIAPIPE AI (Sangat Ringan & Cepat)
-                loadingSubText.textContent = "Menghapus background otomatis... (Memuat AI)";
+                fotoBase64Data = finalDataUrl.split(',')[1];
+                if(fotoPreview) fotoPreview.src = finalDataUrl;
+                if(fotoPreviewContainer) fotoPreviewContainer.classList.remove('hidden');
                 
-                const imgElement = new Image();
-                imgElement.src = resizedDataUrl;
-                await new Promise((res, rej) => { imgElement.onload = res; imgElement.onerror = rej; });
-
-                try {
-                    const finalDataUrl = await new Promise((resolveAI, rejectAI) => {
-                        const selfieSegmentation = new window.SelfieSegmentation({locateFile: (file) => {
-                            return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`;
-                        }});
-
-                        selfieSegmentation.setOptions({ modelSelection: 0 });
-
-                        // Beri batas waktu maksimum 15 detik agar HP tidak macet jika koneksi buruk
-                        const timeoutId = setTimeout(() => {
-                            selfieSegmentation.close();
-                            rejectAI(new Error("AI Timeout"));
-                        }, 15000); 
-
-                        selfieSegmentation.onResults((results) => {
-                            clearTimeout(timeoutId);
-                            const canvas = document.createElement('canvas');
-                            canvas.width = results.image.width;
-                            canvas.height = results.image.height;
-                            const ctx = canvas.getContext('2d');
-
-                            // Gambar Masker (Siluet Orangnya)
-                            ctx.drawImage(results.segmentationMask, 0, 0, canvas.width, canvas.height);
-
-                            // Terapkan Masker ke Foto Asli agar hanya orangnya yang muncul
-                            ctx.globalCompositeOperation = 'source-in';
-                            ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-
-                            // Beri Alas Putih di belakang orangnya
-                            ctx.globalCompositeOperation = 'destination-over';
-                            ctx.fillStyle = '#FFFFFF';
-                            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                            const resultDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                            selfieSegmentation.close();
-                            resolveAI(resultDataUrl);
-                        });
-
-                        selfieSegmentation.send({image: imgElement}).catch(err => {
-                            clearTimeout(timeoutId);
-                            selfieSegmentation.close();
-                            rejectAI(err);
-                        });
-                    });
-
-                    // --- Jika AI Sukses ---
-                    fotoBase64Data = finalDataUrl.split(',')[1];
-                    if(fotoPreview) fotoPreview.src = finalDataUrl;
-                    if(fotoPreviewContainer) fotoPreviewContainer.classList.remove('hidden');
-                    
-                    loadingOverlay.classList.remove('active');
-                    showToast("Pas foto background putih berhasil disiapkan!", "success");
-
-                } catch (aiErr) {
-                    console.error("AI Gagal, menggunakan foto asli:", aiErr);
-                    // --- JIKA AI GAGAL (Koneksi/Memori Penuh), Gunakan Foto Asli sebagai Fallback ---
-                    fotoBase64Data = resizedDataUrl.split(',')[1];
-                    if(fotoPreview) fotoPreview.src = resizedDataUrl;
-                    if(fotoPreviewContainer) fotoPreviewContainer.classList.remove('hidden');
-                    
-                    loadingOverlay.classList.remove('active');
-                    showToast("Sinyal lemah/memori penuh, AI dilewati. Foto asli digunakan.", "error");
-                }
+                loadingOverlay.classList.remove('active');
+                showToast("Pas foto berhasil dipotong dan disiapkan!", "success");
 
             } catch (err) {
-                console.error("Proses Foto Error Keseluruhan:", err);
+                console.error("Proses Foto Error:", err);
                 loadingOverlay.classList.remove('active');
-                showToast("Gagal memproses foto. Pastikan wajah Anda terlihat jelas.", "error");
+                showToast("Gagal memproses foto. Pastikan format gambar valid.", "error");
                 if(inputFotoKamera) inputFotoKamera.value = ""; 
                 if(inputFotoGaleri) inputFotoGaleri.value = ""; 
             }
