@@ -17,8 +17,8 @@
     <!-- SheetJS (Export Excel) -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
-    <!-- AI Background Removal - Menggunakan unpkg agar jalur model tidak error -->
-    <script src="https://unpkg.com/@imgly/background-removal@1.4.3/dist/imgly-background-removal.iife.min.js"></script>
+    <!-- AI Background Removal - Diganti dengan Google MediaPipe (Super Ringan Anti-Macet) -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js" crossorigin="anonymous"></script>
 
     <style>
         .fade-in { animation: fadeIn 0.5s ease-in-out; }
@@ -612,7 +612,7 @@
         }
 
         // ----------------------------------------------------
-        // UPLOAD FOTO & AI BACKGROUND REMOVAL (DISEMPURNAKAN 2.0)
+        // UPLOAD FOTO & AI BACKGROUND REMOVAL (MENGGUNAKAN MEDIAPIPE)
         // ----------------------------------------------------
         let fotoBase64Data = "";
         let fotoFileName = "";
@@ -640,17 +640,17 @@
 
             loadingOverlay.classList.add('active');
             loadingText.textContent = "Memproses Pas Foto...";
-            loadingSubText.textContent = "Menyesuaikan resolusi agar HP tidak macet...";
+            loadingSubText.textContent = "Menyesuaikan ukuran foto...";
 
             try {
-                // TAHAP 1: PRE-COMPRESSION - Paksa ukuran lebih kecil agar AI HP tidak Crash (Maks lebar 400px)
-                const preCompressedBlob = await new Promise((resolve, reject) => {
+                // TAHAP 1: PRE-COMPRESSION - Paksa ukuran optimal (Maks lebar 500px)
+                const resizedDataUrl = await new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = function(event) {
                         const img = new Image();
                         img.onload = function() {
                             const canvas = document.createElement('canvas');
-                            const MAX_WIDTH = 400; // Lebih kecil agar sangat ringan
+                            const MAX_WIDTH = 500; 
                             let width = img.width;
                             let height = img.height;
                             
@@ -664,7 +664,7 @@
                             const ctx = canvas.getContext('2d');
                             ctx.drawImage(img, 0, 0, width, height);
                             
-                            canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.8);
+                            resolve(canvas.toDataURL('image/jpeg', 0.9));
                         };
                         img.onerror = reject;
                         img.src = event.target.result;
@@ -673,70 +673,81 @@
                     reader.readAsDataURL(file);
                 });
 
-                // TAHAP 2: PROSES AI HAPUS BACKGROUND
-                let transparentBlob = preCompressedBlob;
-                let isBgRemoved = false;
-                loadingSubText.textContent = "Menghapus background AI... (Pastikan koneksi internet aktif)";
+                // TAHAP 2: GOOGLE MEDIAPIPE AI (Sangat Ringan & Cepat)
+                loadingSubText.textContent = "Menghapus background otomatis... (Memuat AI)";
                 
-                try {
-                    if (typeof window.imglyRemoveBackground === 'function' || typeof imglyRemoveBackground === 'function') {
-                        const bgRemovalFn = typeof imglyRemoveBackground === 'function' ? imglyRemoveBackground : window.imglyRemoveBackground;
-                        
-                        transparentBlob = await bgRemovalFn(preCompressedBlob, {
-                            publicPath: "https://unpkg.com/@imgly/background-removal@1.4.3/dist/",
-                            model: "small" // PERBAIKAN: Menggunakan model ringan agar HP tidak gagal/crash
-                        });
-                        isBgRemoved = true; // Tandai jika benar-benar sukses melewati baris ini
-                    } else {
-                        console.warn("Library AI belum termuat sempurna");
-                    }
-                } catch (aiErr) {
-                    console.error("AI Removal gagal (Memori/Koneksi):", aiErr);
-                    // isBgRemoved tetap false
-                }
+                const imgElement = new Image();
+                imgElement.src = resizedDataUrl;
+                await new Promise((res, rej) => { imgElement.onload = res; imgElement.onerror = rej; });
 
-                // TAHAP 3: TAMBAHKAN WARNA PUTIH & EXPORT
-                loadingSubText.textContent = "Menyempurnakan hasil...";
-                
-                const reader2 = new FileReader();
-                reader2.onload = function(event) {
-                    const img = new Image();
-                    img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        
-                        const ctx = canvas.getContext('2d');
-                        
-                        // Beri alas putih pekat
-                        ctx.fillStyle = '#FFFFFF';
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        // Tempel gambar (jika AI gagal, gambar ini masih memiliki background aslinya)
-                        ctx.drawImage(img, 0, 0);
-                        
-                        const finalDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                        fotoBase64Data = finalDataUrl.split(',')[1];
-                        
-                        if(fotoPreview) fotoPreview.src = finalDataUrl;
-                        if(fotoPreviewContainer) fotoPreviewContainer.classList.remove('hidden');
-                        
-                        loadingOverlay.classList.remove('active');
-                        
-                        // Notifikasi yang jujur sesuai hasil
-                        if (isBgRemoved) {
-                            showToast("Pas foto background putih berhasil disiapkan!", "success");
-                        } else {
-                            showToast("Sistem AI gagal menghapus background. Foto akan dikirim dengan background asli.", "error");
-                        }
-                    };
-                    img.src = event.target.result;
-                };
-                reader2.readAsDataURL(transparentBlob);
+                try {
+                    const finalDataUrl = await new Promise((resolveAI, rejectAI) => {
+                        const selfieSegmentation = new window.SelfieSegmentation({locateFile: (file) => {
+                            return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`;
+                        }});
+
+                        selfieSegmentation.setOptions({ modelSelection: 0 });
+
+                        // Beri batas waktu maksimum 15 detik agar HP tidak macet jika koneksi buruk
+                        const timeoutId = setTimeout(() => {
+                            selfieSegmentation.close();
+                            rejectAI(new Error("AI Timeout"));
+                        }, 15000); 
+
+                        selfieSegmentation.onResults((results) => {
+                            clearTimeout(timeoutId);
+                            const canvas = document.createElement('canvas');
+                            canvas.width = results.image.width;
+                            canvas.height = results.image.height;
+                            const ctx = canvas.getContext('2d');
+
+                            // Gambar Masker (Siluet Orangnya)
+                            ctx.drawImage(results.segmentationMask, 0, 0, canvas.width, canvas.height);
+
+                            // Terapkan Masker ke Foto Asli agar hanya orangnya yang muncul
+                            ctx.globalCompositeOperation = 'source-in';
+                            ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+                            // Beri Alas Putih di belakang orangnya
+                            ctx.globalCompositeOperation = 'destination-over';
+                            ctx.fillStyle = '#FFFFFF';
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                            const resultDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                            selfieSegmentation.close();
+                            resolveAI(resultDataUrl);
+                        });
+
+                        selfieSegmentation.send({image: imgElement}).catch(err => {
+                            clearTimeout(timeoutId);
+                            selfieSegmentation.close();
+                            rejectAI(err);
+                        });
+                    });
+
+                    // --- Jika AI Sukses ---
+                    fotoBase64Data = finalDataUrl.split(',')[1];
+                    if(fotoPreview) fotoPreview.src = finalDataUrl;
+                    if(fotoPreviewContainer) fotoPreviewContainer.classList.remove('hidden');
+                    
+                    loadingOverlay.classList.remove('active');
+                    showToast("Pas foto background putih berhasil disiapkan!", "success");
+
+                } catch (aiErr) {
+                    console.error("AI Gagal, menggunakan foto asli:", aiErr);
+                    // --- JIKA AI GAGAL (Koneksi/Memori Penuh), Gunakan Foto Asli sebagai Fallback ---
+                    fotoBase64Data = resizedDataUrl.split(',')[1];
+                    if(fotoPreview) fotoPreview.src = resizedDataUrl;
+                    if(fotoPreviewContainer) fotoPreviewContainer.classList.remove('hidden');
+                    
+                    loadingOverlay.classList.remove('active');
+                    showToast("Sinyal lemah/memori penuh, AI dilewati. Foto asli digunakan.", "error");
+                }
 
             } catch (err) {
                 console.error("Proses Foto Error Keseluruhan:", err);
                 loadingOverlay.classList.remove('active');
-                showToast("Gagal memproses foto. Pastikan wajah Anda terlihat jelas atau ukuran file tidak terlalu besar.", "error");
+                showToast("Gagal memproses foto. Pastikan wajah Anda terlihat jelas.", "error");
                 if(inputFotoKamera) inputFotoKamera.value = ""; 
                 if(inputFotoGaleri) inputFotoGaleri.value = ""; 
             }
