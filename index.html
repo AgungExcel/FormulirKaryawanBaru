@@ -342,6 +342,9 @@
                     <button id="btnShareQR" class="flex-1 sm:flex-none px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg flex justify-center items-center gap-2 transition-colors text-xs md:text-sm font-medium shadow-md">
                         <i data-lucide="qr-code" class="w-4 h-4"></i> Share QR
                     </button>
+                    <button id="btnSyncSheet" class="flex-1 sm:flex-none px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg flex justify-center items-center gap-2 transition-colors text-xs md:text-sm font-medium shadow-md text-white">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sync Spreadsheet
+                    </button>
                     <button id="btnExportExcel" class="flex-1 sm:flex-none px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg flex justify-center items-center gap-2 transition-colors text-xs md:text-sm font-medium shadow-md">
                         <i data-lucide="download" class="w-4 h-4"></i> Export Excel
                     </button>
@@ -1250,6 +1253,49 @@
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Data Karyawan");
             XLSX.writeFile(workbook, "Database_Karyawan_Baru.xlsx");
+        });
+
+        // ==================================================
+        // SINKRONISASI KE SPREADSHEET (MANUAL SYNC)
+        // ==================================================
+        document.getElementById('btnSyncSheet').addEventListener('click', async function() {
+            if(globalEmployees.length === 0) {
+                showToast("Belum ada data untuk disinkronkan.", "error");
+                return;
+            }
+            
+            if(!confirm("Kirim ulang seluruh data ke Google Spreadsheet? (Gunakan fitur ini jika ada data yang sebelumnya gagal masuk ke excel)")) return;
+
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            document.getElementById('loadingText').textContent = "Sinkronisasi Data...";
+            document.getElementById('loadingSubText').textContent = "Mengirim ulang ke Spreadsheet. Mohon tunggu sebentar...";
+            loadingOverlay.classList.add('active');
+
+            let successCount = 0;
+            // Kirim data satu per satu dari bawah ke atas (data terlama ke terbaru)
+            const reversedData = [...globalEmployees].reverse(); 
+
+            for (const emp of reversedData) {
+                try {
+                    // Buat salinan data
+                    const dataToSend = { ...emp };
+                    
+                    await fetch(GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(dataToSend)
+                    });
+                    successCount++;
+                    // Delay 0.5 detik per data agar script Google tidak overload
+                    await new Promise(r => setTimeout(r, 500)); 
+                } catch (err) {
+                    console.error("Gagal sinkronisasi data:", err);
+                }
+            }
+
+            loadingOverlay.classList.remove('active');
+            showToast(`Selesai! ${successCount} data telah dikirim ulang ke Spreadsheet.`, "success");
         });
     </script>
 </body>
