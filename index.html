@@ -17,8 +17,8 @@
     <!-- SheetJS (Export Excel) -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
-    <!-- AI Background Removal - Menggunakan JSDelivr agar lebih stabil -->
-    <script src="https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.3/dist/imgly-background-removal.iife.min.js"></script>
+    <!-- AI Background Removal - Menggunakan unpkg agar jalur model tidak error -->
+    <script src="https://unpkg.com/@imgly/background-removal@1.4.3/dist/imgly-background-removal.iife.min.js"></script>
 
     <style>
         .fade-in { animation: fadeIn 0.5s ease-in-out; }
@@ -29,6 +29,21 @@
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
+
+        /* PERBAIKAN: Memperjelas UI Tombol Pilih Tanggal (Kalender) */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            opacity: 1;
+            display: block;
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            /* Memberikan warna kebiruan agar kontras dengan background putih */
+            filter: invert(0.4) sepia(1) hue-rotate(200deg) saturate(200%);
+        }
+        #filterDate::-webkit-calendar-picker-indicator {
+            /* Membuat ikon putih untuk mode gelap di Admin */
+            filter: invert(1);
+        }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 flex flex-col min-h-screen overflow-x-hidden">
@@ -664,12 +679,16 @@
                 loadingSubText.textContent = "Menghapus background AI... (Pastikan koneksi internet aktif)";
                 
                 try {
-                    if (typeof window.imglyRemoveBackground === 'function') {
-                        transparentBlob = await window.imglyRemoveBackground(preCompressedBlob, {
-                            // Menggunakan CDN yang direkomendasikan jika lokal gagal
-                            publicPath: "https://unpkg.com/@imgly/background-removal@1.4.3/dist/"
+                    if (typeof window.imglyRemoveBackground === 'function' || typeof imglyRemoveBackground === 'function') {
+                        const bgRemovalFn = typeof imglyRemoveBackground === 'function' ? imglyRemoveBackground : window.imglyRemoveBackground;
+                        
+                        transparentBlob = await bgRemovalFn(preCompressedBlob, {
+                            publicPath: "https://unpkg.com/@imgly/background-removal@1.4.3/dist/",
+                            model: "small" // PERBAIKAN: Menggunakan model ringan agar HP tidak gagal/crash
                         });
                         isBgRemoved = true; // Tandai jika benar-benar sukses melewati baris ini
+                    } else {
+                        console.warn("Library AI belum termuat sempurna");
                     }
                 } catch (aiErr) {
                     console.error("AI Removal gagal (Memori/Koneksi):", aiErr);
@@ -1489,9 +1508,9 @@
                     showToast("Tidak ada file foto untuk didownload pada filter ini.", "error"); return;
                 }
                 
-                if(!confirm(`Ditemukan ${withPhotos.length} foto pada tanggal ini. \n\nPastikan "Blokir Pop-up" (Pop-up Blocker) di browser Anda mati/diizinkan sebelum lanjut.\n\nLanjut download?`)) return;
+                if(!confirm(`Ditemukan ${withPhotos.length} foto pada tanggal ini. \n\nLanjut download semua?`)) return;
 
-                showToast(`Membuka tab download untuk ${withPhotos.length} foto...`, "success");
+                showToast(`Memulai unduhan ${withPhotos.length} foto berurutan...`, "success");
                 
                 for(let i = 0; i < withPhotos.length; i++) {
                     const emp = withPhotos[i];
@@ -1500,11 +1519,19 @@
                         const fileId = match[1];
                         const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
                         
-                        // Gunakan window.open agar browser mengeksekusinya di tab baru dengan jeda 2 detik
-                        window.open(downloadUrl, '_blank');
+                        // PERBAIKAN: Menggunakan Iframe tersembunyi agar browser tidak memblokir download ganda
+                        const iframe = document.createElement('iframe');
+                        iframe.style.display = 'none';
+                        iframe.src = downloadUrl;
+                        document.body.appendChild(iframe);
                         
-                        // Jeda waktu 2 detik per foto agar browser tidak nge-block massal
-                        await new Promise(r => setTimeout(r, 2000)); 
+                        // Bersihkan Iframe setelah 15 detik
+                        setTimeout(() => {
+                            if(document.body.contains(iframe)) document.body.removeChild(iframe);
+                        }, 15000);
+                        
+                        // Jeda waktu 2,5 detik antar file agar tidak membanjiri sistem
+                        await new Promise(r => setTimeout(r, 2500)); 
                     }
                 }
             });
