@@ -1,844 +1,1246 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Users, Building2, Mail, Phone, MapPin, Calendar, 
-  CheckCircle2, QrCode, TableProperties, Download, 
-  Lock, X, Briefcase, GraduationCap, Heart, AlertCircle, FileText
-} from 'lucide-react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from 'firebase/firestore';
-
-// --- Firebase Setup ---
-let app, auth, db, appId;
-try {
-  const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-  appId = typeof __app_id !== 'undefined' ? __app_id : 'karyawan-app-demo';
-} catch (error) {
-  console.error("Firebase initialization error:", error);
-}
-
-export default function App() {
-  const [user, setUser] = useState(null);
-  const [view, setView] = useState('form'); 
-  const [showQR, setShowQR] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [dobError, setDobError] = useState(false);
-  
-  // Data State
-  const [employees, setEmployees] = useState([]);
-  
-  // State untuk Dropdown Wilayah API
-  const [provinces, setProvinces] = useState([]);
-  const [regencies, setRegencies] = useState([]);
-  const [districts, setDistricts] = useState([]);
-  const [villages, setVillages] = useState([]);
-
-  // Inisialisasi State (Lama Berkerja dipisah Tahun dan Bulan)
-  const initialFormState = {
-    namaLengkap: '',
-    pengalamanGarment: '',
-    namaPerusahaan: '',
-    bagian: '',
-    lamaBekerjaTahun: '',
-    lamaBekerjaBulan: '',
-    jenisKelamin: '',
-    tempatLahir: '',
-    tanggalLahir: '',
-    statusPernikahan: '',
-    jumlahAnak: '',
-    agama: '',
-    alamatEmail: '',
-    noHandphone: '',
-    nomorKTP: '',
-    provinsi: '',
-    kabupaten: '',
-    kecamatan: '',
-    kelurahan: '',
-    rt: '',
-    rw: '',
-    alamatDesa: '',
-    pendidikanTerakhir: '',
-    jurusanSekolah: '',
-    namaIbuKandung: '',
-    namaAyahKandung: '',
-    namaSuamiIstri: '',
-    namaIbuMertua: '',
-    namaAyahMertua: '',
-    namaAnak1: '',
-    namaAnak2: '',
-    namaAnak3: '',
-    namaKontakDarurat: '',
-    noTelpDarurat: '',
-    hubungan: ''
-  };
-
-  const [formData, setFormData] = useState(initialFormState);
-
-  // --- Konfigurasi Google Spreadsheet ---
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-q_FMoXKG2nyX16EHg6x3QWEL7bMWzWtSopMlM5wWWVhdg0cyyCeBfr2e5LmXxYV5fA/exec";
-
-  // Batas Maksimal Tanggal Lahir (17 Tahun yang lalu dari hari ini)
-  const maxDobDate = useMemo(() => {
-    const today = new Date();
-    return new Date(today.getFullYear() - 17, today.getMonth(), today.getDate()).toISOString().split('T')[0];
-  }, []);
-
-  // --- Auth & Data Fetching ---
-  useEffect(() => {
-    if (!auth) return;
-    const initAuth = async () => {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-      } catch (err) {
-        console.error("Auth Error:", err);
-      }
-    };
-    initAuth();
-    const unsubscribe = onAuthStateChanged(auth, setUser);
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!user || view !== 'admin' || !db) return;
-    const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'employees'));
-    const unsubscribe = onSnapshot(q, 
-      (snapshot) => {
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        data.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
-        setEmployees(data);
-      },
-      (error) => { console.error("Error fetching data: ", error); }
-    );
-    return () => unsubscribe();
-  }, [user, view]);
-
-  useEffect(() => {
-    fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
-      .then(res => res.json())
-      .then(data => setProvinces(data))
-      .catch(err => console.error("Error fetching provinces:", err));
-  }, []);
-
-  // --- Handlers ---
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  // Validasi Usia Minimum 17 Tahun
-  const handleDobChange = (e) => {
-    const value = e.target.value;
-    setFormData(prev => ({ ...prev, tanggalLahir: value }));
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulir Karyawan Baru - PT Hop Lun Indonesia</title>
     
-    if (value) {
-      const today = new Date();
-      const dob = new Date(value);
-      let age = today.getFullYear() - dob.getFullYear();
-      const m = today.getMonth() - dob.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-        age--;
-      }
-      
-      if (age < 17) {
-        setDobError(true);
-      } else {
-        setDobError(false);
-      }
-    } else {
-      setDobError(false);
-    }
-  };
-
-  // Handler API Wilayah
-  const handleProvinsiChange = async (e) => {
-    const selectedOpt = e.target.options[e.target.selectedIndex];
-    const id = selectedOpt.getAttribute('data-id');
-    const name = selectedOpt.value;
-    setFormData(prev => ({ ...prev, provinsi: name, kabupaten: '', kecamatan: '', kelurahan: '' }));
-    setRegencies([]); setDistricts([]); setVillages([]);
-    if (id) {
-      try {
-        const res = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${id}.json`);
-        setRegencies(await res.json());
-      } catch (err) { console.error(err); }
-    }
-  };
-
-  const handleKabupatenChange = async (e) => {
-    const selectedOpt = e.target.options[e.target.selectedIndex];
-    const id = selectedOpt.getAttribute('data-id');
-    const name = selectedOpt.value;
-    setFormData(prev => ({ ...prev, kabupaten: name, kecamatan: '', kelurahan: '' }));
-    setDistricts([]); setVillages([]);
-    if (id) {
-      try {
-        const res = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${id}.json`);
-        setDistricts(await res.json());
-      } catch (err) { console.error(err); }
-    }
-  };
-
-  const handleKecamatanChange = async (e) => {
-    const selectedOpt = e.target.options[e.target.selectedIndex];
-    const id = selectedOpt.getAttribute('data-id');
-    const name = selectedOpt.value;
-    setFormData(prev => ({ ...prev, kecamatan: name, kelurahan: '' }));
-    setVillages([]);
-    if (id) {
-      try {
-        const res = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${id}.json`);
-        setVillages(await res.json());
-      } catch (err) { console.error(err); }
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!user || !db) return;
-
-    // Cegah submit jika error usia
-    if (dobError) {
-      alert("Pendaftaran ditolak. Usia minimal harus 17 Tahun!");
-      return;
-    }
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="hoplun128.png">
     
-    setIsSubmitting(true);
-    try {
-      // Menggabungkan data lama bekerja Tahun dan Bulan
-      const combinedLamaBekerja = formData.pengalamanGarment === 'YA' 
-        ? `${formData.lamaBekerjaTahun ? formData.lamaBekerjaTahun + ' Tahun' : ''} ${formData.lamaBekerjaBulan ? formData.lamaBekerjaBulan + ' Bulan' : ''}`.trim() 
-        : '';
+    <!-- Tailwind CSS (Desain Responsif) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- SheetJS (Export Excel) -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
-      const dataToSubmit = {
-        ...formData,
-        lamaBekerja: combinedLamaBekerja
-      };
+    <!-- AI Background Removal -->
+    <script src="https://unpkg.com/@imgly/background-removal@1.4.3/dist/imgly-background-removal.iife.min.js"></script>
 
-      // 1. Simpan ke Database Internal App (Firebase)
-      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), {
-        ...dataToSubmit,
-        timestamp: serverTimestamp()
-      });
+    <style>
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        #loadingOverlay { display: none; }
+        #loadingOverlay.active { display: flex; }
+        /* Hilangkan panah up/down di input number */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-900 flex flex-col min-h-screen overflow-x-hidden">
 
-      // 2. Kirim Data ke Google Spreadsheet (Ditambahkan mode: 'no-cors')
-      if (GOOGLE_SCRIPT_URL) {
-        await fetch(GOOGLE_SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors', // WAJIB untuk Google Apps Script
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8', 
-          },
-          body: JSON.stringify({
-            waktu: new Date().toLocaleString('id-ID'),
-            ...dataToSubmit
-          })
-        });
-      }
-
-      setIsSuccess(true);
-      setFormData(initialFormState); 
-      setDobError(false);
-      window.scrollTo({top: 0, behavior: 'smooth'}); 
-      
-      setTimeout(() => {
-        setIsSuccess(false);
-      }, 8000);
-    } catch (error) {
-      console.error("Error submitting form: ", error);
-      alert("Terjadi kesalahan saat menyimpan data. Silakan coba lagi.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const exportToExcel = async () => {
-    setIsExporting(true);
-    try {
-      if (!window.XLSX) {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js';
-          script.onload = resolve;
-          script.onerror = () => reject(new Error('Gagal memuat pustaka SheetJS'));
-          document.head.appendChild(script);
-        });
-      }
-
-      const XLSX = window.XLSX;
-
-      const formattedData = employees.map(emp => ({
-        'Nama Lengkap': emp.namaLengkap || '',
-        'Pengalaman Garment YA/TIDAK': emp.pengalamanGarment || '',
-        'Nama Perusahaan': emp.namaPerusahaan || '',
-        'BAGIAN': emp.bagian || '',
-        'LAMA BEKERJA': emp.lamaBekerja || '',
-        'Jenis Kelamin': emp.jenisKelamin || '',
-        'Tempat Lahir': emp.tempatLahir || '',
-        'Tanggal Lahir': emp.tanggalLahir || '',
-        'Status Pernikahan': emp.statusPernikahan || '',
-        'Jumlah anak (wajib diisi bagi yang sudah mempunyai anak)': emp.jumlahAnak || '',
-        'Agama': emp.agama || '',
-        'Alamat Email': emp.alamatEmail || '',
-        'No Handphone Aktif': emp.noHandphone || '',
-        'Nomor KTP': emp.nomorKTP || '',
-        'Provinsi': emp.provinsi || '',
-        'Kabupaten': emp.kabupaten || '',
-        'Kecamatan': emp.kecamatan || '',
-        'Kelurahan': emp.kelurahan || '',
-        'RT (pengisian 2 digit angka, contoh:01)': emp.rt || '',
-        'RW (pengisian 2 digit angka, contoh:01)': emp.rw || '',
-        'Alamat (Desa/Dukuh)': emp.alamatDesa || '',
-        'Pendidikan Terakhir': emp.pendidikanTerakhir || '',
-        'Jurusan Sekolah (untuk SMA sederajat keatas)': emp.jurusanSekolah || '',
-        'Nama Ibu Kandung': emp.namaIbuKandung || '',
-        'Nama Ayah Kandung': emp.namaAyahKandung || '',
-        'Nama Suami/Istri (wajib diisi jika sudah menikah)': emp.namaSuamiIstri || '',
-        'Nama Ibu Mertua (wajib diisi jika sudah menikah)': emp.namaIbuMertua || '',
-        'Nama Ayah Mertua  (wajib diisi jika sudah menikah)': emp.namaAyahMertua || '',
-        'Nama Anak Pertama  (wajib diisi jika sudah punya)': emp.namaAnak1 || '',
-        'Nama Anak Kedua  (wajib diisi jika sudah punya)': emp.namaAnak2 || '',
-        'Nama Anak Ketiga  (wajib diisi jika sudah punya)': emp.namaAnak3 || '',
-        'Nama Kontak Darurat': emp.namaKontakDarurat || '',
-        'No telp kontak darurat': emp.noTelpDarurat || '',
-        'Hubungan': emp.hubungan || '',
-        'Waktu Pengisian Sistem': emp.timestamp ? new Date(emp.timestamp.toDate()).toLocaleString('id-ID') : '-'
-      }));
-
-      const worksheet = XLSX.utils.json_to_sheet(formattedData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Data Karyawan");
-      
-      XLSX.writeFile(workbook, "Database_Karyawan_Baru.xlsx");
-    } catch (error) {
-      console.error("Error exporting to Excel:", error);
-      alert("Gagal mengekspor data ke Excel.");
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  // --- UI Components ---
-  const InputGroup = ({ label, children, required, error }) => (
-    <div className="space-y-1.5 w-full">
-      <label className="text-sm font-medium text-gray-700 flex items-center">
-        {label} {required && <span className="text-red-500 ml-1">*</span>}
-      </label>
-      {children}
-      {error && <p className="text-red-500 text-xs mt-1 font-medium">{error}</p>}
-    </div>
-  );
-
-  const renderForm = () => {
-    if (isSuccess) {
-      return (
-        <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 text-center max-w-lg w-full mx-auto animate-fade-in-up border border-green-100 mt-4 md:mt-10">
-          <div className="w-16 h-16 md:w-20 md:h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
-            <CheckCircle2 className="w-8 h-8 md:w-10 md:h-10 text-green-600" />
-          </div>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">Data Berhasil Disimpan!</h2>
-          <p className="text-sm md:text-base text-gray-600 mb-8">Terima kasih, data Anda telah masuk ke dalam sistem database perusahaan.</p>
-          <button 
-            onClick={() => setIsSuccess(false)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors w-full sm:w-auto"
-          >
-            Isi Data Baru
-          </button>
-        </div>
-      );
-    }
-
-    return (
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden max-w-4xl w-full mx-auto border border-gray-100 mb-8">
-        <div className="bg-blue-600 h-2 md:h-3 w-full"></div>
-        <div className="p-4 sm:p-6 md:p-10">
-          <div className="mb-6 md:mb-8 border-b border-gray-100 pb-4 md:pb-6 text-center md:text-left">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2 leading-tight">Formulir Data Karyawan<br className="block md:hidden"/> PT Hop Lun Indonesia</h1>
-            <p className="text-red-600 font-bold text-sm md:text-lg mt-1">Data WAJIB diisi sesuai dengan KTP</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6 md:space-y-10">
-            
-            {/* Bagian 1: Data Pribadi */}
-            <div className="bg-slate-50 p-4 md:p-6 rounded-xl border border-slate-200">
-              <h2 className="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
-                <Users className="w-5 h-5 text-blue-600" /> Data Pribadi
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-                <InputGroup label="Nama Lengkap" required>
-                  <input required type="text" name="namaLengkap" value={formData.namaLengkap} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase" placeholder="Sesuai KTP" />
-                </InputGroup>
-                
-                <InputGroup label="Nomor KTP" required>
-                  <input required type="number" name="nomorKTP" value={formData.nomorKTP} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="16 Digit NIK" />
-                </InputGroup>
-
-                <InputGroup label="Jenis Kelamin" required>
-                  <select required name="jenisKelamin" value={formData.jenisKelamin} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                    <option value="">Pilih Jenis Kelamin</option>
-                    <option value="MALE (Laki-laki)">MALE (Laki-laki)</option>
-                    <option value="FEMALE (Perempuan)">FEMALE (Perempuan)</option>
-                  </select>
-                </InputGroup>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <InputGroup label="Tempat Lahir" required>
-                    <input required type="text" name="tempatLahir" value={formData.tempatLahir} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase" />
-                  </InputGroup>
-                  <InputGroup label="Tanggal Lahir" required error={dobError ? "⚠️ Cek lagi tanggal lahir anda. Usia minimal 17 tahun." : null}>
-                    <input 
-                      required 
-                      type="date" 
-                      name="tanggalLahir" 
-                      max={maxDobDate}
-                      value={formData.tanggalLahir} 
-                      onChange={handleDobChange} 
-                      className={`w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border outline-none bg-white ${dobError ? 'border-red-500 focus:ring-red-500 text-red-600' : 'border-gray-300 focus:ring-2 focus:ring-blue-500'}`} 
-                    />
-                  </InputGroup>
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-gray-200 px-4 md:px-6 py-3 md:py-4 flex flex-col sm:flex-row justify-between items-center sticky top-0 z-20 shadow-sm gap-3 sm:gap-0">
+        <div class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity" onclick="window.location.reload()" title="Klik untuk me-refresh halaman">
+            <div class="p-0.5 rounded-lg shadow-sm border border-gray-100 bg-white">
+                <img src="hoplun128.png" alt="Logo Hop Lun" class="w-10 h-10 object-contain rounded-md" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="w-10 h-10 bg-blue-600 rounded-md text-white items-center justify-center hidden">
+                    <i data-lucide="users" class="w-6 h-6"></i>
                 </div>
-
-                <InputGroup label="Agama" required>
-                  <select required name="agama" value={formData.agama} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                    <option value="">Pilih Agama</option>
-                    <option value="Islam">Islam</option>
-                    <option value="Christianity">Christianity (Kristen)</option>
-                    <option value="Catholic">Catholic (Katolik)</option>
-                    <option value="Hinduism">Hinduism (Hindu)</option>
-                    <option value="Buddhism">Buddhism (Buddha)</option>
-                    <option value="Konghucu">Konghucu</option>
-                  </select>
-                </InputGroup>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <InputGroup label="Status Pernikahan" required>
-                    <select required name="statusPernikahan" value={formData.statusPernikahan} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                      <option value="">Pilih Status</option>
-                      <option value="SINGLE">SINGLE</option>
-                      <option value="MARRIED">MARRIED</option>
-                      <option value="WIDOW">WIDOW (Janda/Duda)</option>
-                    </select>
-                  </InputGroup>
-                  <InputGroup label="Jumlah Anak" required>
-                    <select required name="jumlahAnak" value={formData.jumlahAnak} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                      <option value="">Pilih</option>
-                      <option value="TK0">TK0 (Tidak ada)</option>
-                      <option value="K1">K1 (1 Anak)</option>
-                      <option value="K2">K2 (2 Anak)</option>
-                      <option value="K3">K3 (3 Anak)</option>
-                      <option value="Lebih dari 3">Lebih dari 3</option>
-                    </select>
-                  </InputGroup>
-                </div>
-              </div>
             </div>
-
-            {/* Bagian 2: Kontak & Domisili */}
-            <div className="bg-slate-50 p-4 md:p-6 rounded-xl border border-slate-200">
-              <h2 className="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
-                <MapPin className="w-5 h-5 text-blue-600" /> Kontak & Domisili
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-                <InputGroup label="No Handphone Aktif" required>
-                  <input required type="tel" name="noHandphone" value={formData.noHandphone} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="08xxxx" />
-                </InputGroup>
-                
-                <InputGroup label="Alamat Email">
-                  <input type="email" name="alamatEmail" value={formData.alamatEmail} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none lowercase" placeholder="email@contoh.com" />
-                </InputGroup>
-
-                <InputGroup label="Provinsi" required>
-                  <select required name="provinsi" value={formData.provinsi} onChange={handleProvinsiChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white max-w-full text-ellipsis">
-                    <option value="" data-id="">Pilih Provinsi</option>
-                    {provinces.map(prov => (
-                      <option key={prov.id} value={prov.name} data-id={prov.id}>{prov.name}</option>
-                    ))}
-                  </select>
-                </InputGroup>
-
-                <InputGroup label="Kabupaten/Kota" required>
-                  <select required name="kabupaten" value={formData.kabupaten} onChange={handleKabupatenChange} disabled={!formData.provinsi} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-400 bg-white max-w-full text-ellipsis">
-                    <option value="" data-id="">Pilih Kabupaten/Kota</option>
-                    {regencies.map(reg => (
-                      <option key={reg.id} value={reg.name} data-id={reg.id}>{reg.name}</option>
-                    ))}
-                  </select>
-                </InputGroup>
-
-                <InputGroup label="Kecamatan" required>
-                  <select required name="kecamatan" value={formData.kecamatan} onChange={handleKecamatanChange} disabled={!formData.kabupaten} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-400 bg-white max-w-full text-ellipsis">
-                    <option value="" data-id="">Pilih Kecamatan</option>
-                    {districts.map(dist => (
-                      <option key={dist.id} value={dist.name} data-id={dist.id}>{dist.name}</option>
-                    ))}
-                  </select>
-                </InputGroup>
-
-                <InputGroup label="Kelurahan" required>
-                  <select required name="kelurahan" value={formData.kelurahan} onChange={handleInputChange} disabled={!formData.kecamatan} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-400 bg-white max-w-full text-ellipsis">
-                    <option value="">Pilih Kelurahan</option>
-                    {villages.map(vil => (
-                      <option key={vil.id} value={vil.name}>{vil.name}</option>
-                    ))}
-                  </select>
-                </InputGroup>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <InputGroup label="RT (2 digit)" required>
-                    <input required type="number" name="rt" value={formData.rt} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="01" />
-                  </InputGroup>
-                  <InputGroup label="RW (2 digit)" required>
-                    <input required type="number" name="rw" value={formData.rw} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="02" />
-                  </InputGroup>
-                </div>
-
-                <div className="md:col-span-2">
-                  <InputGroup label="Alamat (Desa/Dukuh/Jalan)" required>
-                    <textarea required name="alamatDesa" value={formData.alamatDesa} onChange={handleInputChange} rows="2" className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase" placeholder="Nama desa, jalan, atau patokan rumah..."></textarea>
-                  </InputGroup>
-                </div>
-              </div>
+            <div>
+                <h1 class="font-bold text-lg md:text-xl tracking-tight text-gray-800 leading-none">PT Hop Lun <span class="text-blue-600">Indonesia</span></h1>
+                <p class="text-[10px] md:text-xs text-gray-500 mt-1">Sistem Pendataan Karyawan</p>
             </div>
-
-            {/* Bagian 3: Pendidikan & Pengalaman */}
-            <div className="bg-slate-50 p-4 md:p-6 rounded-xl border border-slate-200">
-              <h2 className="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
-                <GraduationCap className="w-5 h-5 text-blue-600" /> Pendidikan & Pengalaman
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-                <InputGroup label="Pendidikan Terakhir" required>
-                  <select required name="pendidikanTerakhir" value={formData.pendidikanTerakhir} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                    <option value="">Pilih Pendidikan</option>
-                    <option value="SD">SD</option>
-                    <option value="SMP">SMP</option>
-                    <option value="SMA/SMK">SMA/SMK</option>
-                    <option value="D1">D1</option>
-                    <option value="D2">D2</option>
-                    <option value="D3">D3</option>
-                    <option value="D4/S1">D4/S1</option>
-                  </select>
-                </InputGroup>
-
-                <InputGroup label="Jurusan Sekolah">
-                  <input type="text" name="jurusanSekolah" value={formData.jurusanSekolah} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase" placeholder="Isi untuk SMA keatas" />
-                </InputGroup>
-
-                <InputGroup label="Pengalaman Garment?" required>
-                  <select required name="pengalamanGarment" value={formData.pengalamanGarment} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                    <option value="">Pilih</option>
-                    <option value="YA">YA</option>
-                    <option value="TIDAK">TIDAK</option>
-                  </select>
-                </InputGroup>
-
-                {formData.pengalamanGarment === 'YA' && (
-                  <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 bg-white p-4 rounded-xl border border-gray-200 mt-2">
-                    <InputGroup label="Nama Perusahaan" required>
-                      <input required type="text" name="namaPerusahaan" value={formData.namaPerusahaan} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase" />
-                    </InputGroup>
-                    <InputGroup label="Bagian / Posisi" required>
-                      <input required type="text" name="bagian" value={formData.bagian} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase" />
-                    </InputGroup>
-                    <InputGroup label="Lama Bekerja" required>
-                      <div className="flex gap-2 items-center">
-                        <div className="flex-1 flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 bg-white">
-                          <input required type="number" step="any" min="0" name="lamaBekerjaTahun" value={formData.lamaBekerjaTahun} onChange={handleInputChange} className="w-full px-3 py-2.5 md:py-3 outline-none" placeholder="0" />
-                          <span className="pr-3 text-gray-500 text-sm font-medium bg-gray-50 h-full flex items-center border-l border-gray-200 px-2">Thn</span>
-                        </div>
-                        <div className="flex-1 flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 bg-white">
-                          <input required type="number" step="any" min="0" name="lamaBekerjaBulan" value={formData.lamaBekerjaBulan} onChange={handleInputChange} className="w-full px-3 py-2.5 md:py-3 outline-none" placeholder="0" />
-                          <span className="pr-3 text-gray-500 text-sm font-medium bg-gray-50 h-full flex items-center border-l border-gray-200 px-2">Bln</span>
-                        </div>
-                      </div>
-                    </InputGroup>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Bagian 4: Data Keluarga */}
-            <div className="bg-slate-50 p-4 md:p-6 rounded-xl border border-slate-200">
-              <h2 className="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
-                <Heart className="w-5 h-5 text-blue-600" /> Data Keluarga
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-                <InputGroup label="Nama Ibu Kandung" required>
-                  <input required type="text" name="namaIbuKandung" value={formData.namaIbuKandung} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase" />
-                </InputGroup>
-
-                <InputGroup label="Nama Ayah Kandung" required>
-                  <input required type="text" name="namaAyahKandung" value={formData.namaAyahKandung} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase" />
-                </InputGroup>
-
-                <div className="md:col-span-2 border-t border-gray-200 my-1 pt-3">
-                  <p className="text-sm text-gray-500 italic mb-2">Wajib diisi jika sudah menikah/punya anak:</p>
-                </div>
-
-                <InputGroup label="Nama Suami / Istri">
-                  <input type="text" name="namaSuamiIstri" value={formData.namaSuamiIstri} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase" />
-                </InputGroup>
-                
-                <div className="hidden md:block"></div>
-
-                <InputGroup label="Nama Ibu Mertua">
-                  <input type="text" name="namaIbuMertua" value={formData.namaIbuMertua} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase" />
-                </InputGroup>
-
-                <InputGroup label="Nama Ayah Mertua">
-                  <input type="text" name="namaAyahMertua" value={formData.namaAyahMertua} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase" />
-                </InputGroup>
-
-                <InputGroup label="Nama Anak Pertama">
-                  <input type="text" name="namaAnak1" value={formData.namaAnak1} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase" />
-                </InputGroup>
-
-                <InputGroup label="Nama Anak Kedua">
-                  <input type="text" name="namaAnak2" value={formData.namaAnak2} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase" />
-                </InputGroup>
-
-                <InputGroup label="Nama Anak Ketiga">
-                  <input type="text" name="namaAnak3" value={formData.namaAnak3} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase" />
-                </InputGroup>
-              </div>
-            </div>
-
-            {/* Bagian 5: Kontak Darurat */}
-            <div className="bg-red-50 p-4 md:p-6 rounded-xl border border-red-100">
-              <h2 className="text-base md:text-lg font-bold text-red-800 flex items-center gap-2 mb-4">
-                <AlertCircle className="w-5 h-5 text-red-600" /> Kontak Darurat
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
-                <InputGroup label="Nama Kontak" required>
-                  <input required type="text" name="namaKontakDarurat" value={formData.namaKontakDarurat} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-400 outline-none uppercase" />
-                </InputGroup>
-                
-                <InputGroup label="No Telp / WA" required>
-                  <input required type="tel" name="noTelpDarurat" value={formData.noTelpDarurat} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-400 outline-none" />
-                </InputGroup>
-
-                <InputGroup label="Hubungan" required>
-                  <input required type="text" name="hubungan" value={formData.hubungan} onChange={handleInputChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-400 outline-none uppercase" placeholder="Istri / Suami / Ortu" />
-                </InputGroup>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-gray-200">
-              <button 
-                type="submit" 
-                disabled={isSubmitting || dobError}
-                className={`w-full md:w-auto md:min-w-[300px] float-right py-3.5 md:py-4 px-8 rounded-xl text-white font-bold text-lg transition-all shadow-lg hover:shadow-xl flex justify-center items-center gap-2 ${isSubmitting || dobError ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 hover:-translate-y-1'}`}
-              >
-                {isSubmitting ? (
-                  <span className="animate-pulse">Menyimpan Data...</span>
-                ) : (
-                  <>KIRIM DATA KARYAWAN</>
-                )}
-              </button>
-              <div className="clear-both"></div>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
-
-  const renderAdmin = () => {
-    return (
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden w-full mx-auto border border-gray-100 flex flex-col h-[85vh] mt-4">
-        {/* Admin Header */}
-        <div className="bg-slate-800 p-4 md:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-white">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-              <TableProperties className="w-5 h-5 md:w-6 md:h-6 text-blue-400" /> 
-              Database Karyawan Baru
-            </h1>
-            <p className="text-slate-400 text-xs md:text-sm mt-1">
-              Menampilkan {employees.length} data karyawan.
-            </p>
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <button 
-              onClick={() => setShowQR(true)}
-              className="flex-1 sm:flex-none px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg flex justify-center items-center gap-2 transition-colors text-xs md:text-sm font-medium"
-            >
-              <QrCode className="w-4 h-4" /> QR Code
-            </button>
-            <button 
-              onClick={exportToExcel}
-              disabled={isExporting}
-              className={`flex-1 sm:flex-none px-3 py-2 rounded-lg flex justify-center items-center gap-2 transition-colors text-xs md:text-sm font-medium shadow-md ${isExporting ? 'bg-emerald-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500'}`}
-            >
-              <Download className="w-4 h-4" /> 
-              {isExporting ? 'Proses...' : 'Export Excel'}
-            </button>
-          </div>
-        </div>
-
-        {/* Table View */}
-        <div className="flex-1 overflow-auto p-0 bg-gray-50">
-          <table className="w-full text-left text-xs md:text-sm whitespace-nowrap min-w-max">
-            <thead className="bg-slate-100 text-slate-700 sticky top-0 z-10 shadow-sm border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Waktu Submit</th>
-                <th className="px-4 py-3 font-semibold">Nama Lengkap</th>
-                <th className="px-4 py-3 font-semibold">Pengalaman?</th>
-                <th className="px-4 py-3 font-semibold">Nama Perusahaan</th>
-                <th className="px-4 py-3 font-semibold">Bagian</th>
-                <th className="px-4 py-3 font-semibold">Lama Bekerja</th>
-                <th className="px-4 py-3 font-semibold">Jenis Kelamin</th>
-                <th className="px-4 py-3 font-semibold">Tempat Lahir</th>
-                <th className="px-4 py-3 font-semibold">Tanggal Lahir</th>
-                <th className="px-4 py-3 font-semibold">Status Pernikahan</th>
-                <th className="px-4 py-3 font-semibold">Jumlah Anak</th>
-                <th className="px-4 py-3 font-semibold">Agama</th>
-                <th className="px-4 py-3 font-semibold">Alamat Email</th>
-                <th className="px-4 py-3 font-semibold">No Handphone</th>
-                <th className="px-4 py-3 font-semibold">Nomor KTP</th>
-                <th className="px-4 py-3 font-semibold">Provinsi</th>
-                <th className="px-4 py-3 font-semibold">Kabupaten</th>
-                <th className="px-4 py-3 font-semibold">Kecamatan</th>
-                <th className="px-4 py-3 font-semibold">Kelurahan</th>
-                <th className="px-4 py-3 font-semibold">RT</th>
-                <th className="px-4 py-3 font-semibold">RW</th>
-                <th className="px-4 py-3 font-semibold">Alamat (Desa/Dukuh)</th>
-                <th className="px-4 py-3 font-semibold">Pendidikan Terakhir</th>
-                <th className="px-4 py-3 font-semibold">Jurusan Sekolah</th>
-                <th className="px-4 py-3 font-semibold">Nama Ibu Kandung</th>
-                <th className="px-4 py-3 font-semibold">Nama Ayah Kandung</th>
-                <th className="px-4 py-3 font-semibold">Nama Suami/Istri</th>
-                <th className="px-4 py-3 font-semibold">Nama Ibu Mertua</th>
-                <th className="px-4 py-3 font-semibold">Nama Ayah Mertua</th>
-                <th className="px-4 py-3 font-semibold">Nama Anak Pertama</th>
-                <th className="px-4 py-3 font-semibold">Nama Anak Kedua</th>
-                <th className="px-4 py-3 font-semibold">Nama Anak Ketiga</th>
-                <th className="px-4 py-3 font-semibold">Kontak Darurat</th>
-                <th className="px-4 py-3 font-semibold">No Telp Darurat</th>
-                <th className="px-4 py-3 font-semibold">Hubungan Darurat</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {employees.length === 0 ? (
-                <tr>
-                  <td colSpan="35" className="px-6 py-12 text-center text-gray-500">
-                    <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    Belum ada data karyawan baru yang masuk.
-                  </td>
-                </tr>
-              ) : (
-                employees.map((emp) => (
-                  <tr key={emp.id} className="hover:bg-blue-50 transition-colors">
-                    <td className="px-4 py-3 text-xs text-gray-500">{emp.timestamp ? new Date(emp.timestamp.toDate()).toLocaleString('id-ID') : '-'}</td>
-                    <td className="px-4 py-3 font-medium text-gray-900">{emp.namaLengkap}</td>
-                    <td className="px-4 py-3">{emp.pengalamanGarment}</td>
-                    <td className="px-4 py-3">{emp.namaPerusahaan}</td>
-                    <td className="px-4 py-3">{emp.bagian}</td>
-                    <td className="px-4 py-3 font-medium text-blue-600">{emp.lamaBekerja}</td>
-                    <td className="px-4 py-3">{emp.jenisKelamin}</td>
-                    <td className="px-4 py-3">{emp.tempatLahir}</td>
-                    <td className="px-4 py-3">{emp.tanggalLahir}</td>
-                    <td className="px-4 py-3">{emp.statusPernikahan}</td>
-                    <td className="px-4 py-3">{emp.jumlahAnak}</td>
-                    <td className="px-4 py-3">{emp.agama}</td>
-                    <td className="px-4 py-3">{emp.alamatEmail}</td>
-                    <td className="px-4 py-3">{emp.noHandphone}</td>
-                    <td className="px-4 py-3">{emp.nomorKTP}</td>
-                    <td className="px-4 py-3">{emp.provinsi}</td>
-                    <td className="px-4 py-3">{emp.kabupaten}</td>
-                    <td className="px-4 py-3">{emp.kecamatan}</td>
-                    <td className="px-4 py-3">{emp.kelurahan}</td>
-                    <td className="px-4 py-3">{emp.rt}</td>
-                    <td className="px-4 py-3">{emp.rw}</td>
-                    <td className="px-4 py-3">{emp.alamatDesa}</td>
-                    <td className="px-4 py-3">{emp.pendidikanTerakhir}</td>
-                    <td className="px-4 py-3">{emp.jurusanSekolah}</td>
-                    <td className="px-4 py-3">{emp.namaIbuKandung}</td>
-                    <td className="px-4 py-3">{emp.namaAyahKandung}</td>
-                    <td className="px-4 py-3">{emp.namaSuamiIstri}</td>
-                    <td className="px-4 py-3">{emp.namaIbuMertua}</td>
-                    <td className="px-4 py-3">{emp.namaAyahMertua}</td>
-                    <td className="px-4 py-3">{emp.namaAnak1}</td>
-                    <td className="px-4 py-3">{emp.namaAnak2}</td>
-                    <td className="px-4 py-3">{emp.namaAnak3}</td>
-                    <td className="px-4 py-3">{emp.namaKontakDarurat}</td>
-                    <td className="px-4 py-3">{emp.noTelpDarurat}</td>
-                    <td className="px-4 py-3">{emp.hubungan}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  };
-
-  const currentUrl = typeof window !== 'undefined' ? window.location.href : 'https://example.com';
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(currentUrl)}`;
-
-  return (
-    <div className="min-h-screen bg-slate-100 font-sans text-slate-900 flex flex-col">
-      <nav className="bg-white border-b border-gray-200 px-4 md:px-6 py-3 md:py-4 flex flex-col sm:flex-row justify-between items-center sticky top-0 z-20 shadow-sm gap-3 sm:gap-0">
-        <div className="flex items-center gap-3">
-          <div className="bg-blue-600 p-2 md:p-2.5 rounded-lg shadow-sm">
-            <Users className="w-5 h-5 md:w-6 md:h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="font-bold text-lg md:text-xl tracking-tight text-gray-800 leading-none">PT Hop Lun <span className="text-blue-600">Indonesia</span></h1>
-            <p className="text-[10px] md:text-xs text-gray-500 mt-1">Sistem Pendataan Karyawan</p>
-          </div>
         </div>
         
-        <div className="flex bg-gray-100 p-1 rounded-lg w-full sm:w-auto justify-center">
-          <button 
-            onClick={() => setView('form')}
-            className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${view === 'form' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Formulir Isi
-          </button>
-          <button 
-            onClick={() => setView('admin')}
-            className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${view === 'admin' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Database Admin
-          </button>
-        </div>
-      </nav>
-
-      <main className="flex-1 p-3 sm:p-4 md:p-6 w-full">
-        {view === 'form' ? renderForm() : renderAdmin()}
-      </main>
-
-      {showQR && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowQR(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 max-w-sm w-full text-center relative" onClick={e => e.stopPropagation()}>
-            <button onClick={() => setShowQR(false)} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full p-1">
-              <X className="w-5 h-5" />
+        <div class="flex bg-gray-100 p-1 rounded-lg w-full sm:w-auto justify-center">
+            <button id="btnViewForm" class="flex-1 sm:flex-none px-4 py-1.5 rounded-md text-sm font-medium transition-colors bg-white shadow-sm text-blue-600">
+                Formulir Isi
             </button>
-            <h3 className="text-xl font-bold mb-2">Scan Barcode Ini</h3>
-            <p className="text-gray-500 text-sm mb-4">Minta karyawan baru scan barcode ini menggunakan HP mereka untuk membuka formulir pendataan.</p>
-            <div className="bg-white p-4 rounded-xl border-2 border-dashed border-gray-200 inline-block mb-6 shadow-sm">
-              <img src={qrCodeUrl} alt="QR Code Form" className="w-48 h-48 mx-auto" />
+            <button id="btnViewAdmin" class="flex-1 sm:flex-none px-4 py-1.5 rounded-md text-sm font-medium transition-colors text-gray-500 hover:text-gray-700">
+                Database Admin
+            </button>
+        </div>
+    </nav>
+
+    <main class="flex-1 p-3 sm:p-4 md:p-6 w-full">
+        
+        <!-- VIEW 1: FORMULIR ISIAN -->
+        <div id="viewForm" class="fade-in max-w-4xl w-full mx-auto my-2 md:my-4">
+            
+            <div id="successMessage" class="hidden bg-white rounded-2xl shadow-xl p-6 md:p-8 text-center border border-green-100 mb-8 fade-in">
+                <div class="w-16 h-16 md:w-20 md:h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
+                    <i data-lucide="check-circle-2" class="w-8 h-8 md:w-10 md:h-10 text-green-600"></i>
+                </div>
+                <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-2">Data Berhasil Disimpan!</h2>
+                <p class="text-sm md:text-base text-gray-600 mb-8">Terima kasih, data Anda telah masuk ke dalam sistem database perusahaan.</p>
+                <button id="btnResetForm" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors shadow-md w-full sm:w-auto">
+                    <i data-lucide="refresh-cw" class="w-5 h-5 inline-block mr-1 -mt-1"></i> Isi Data Baru (Refresh)
+                </button>
             </div>
-            <button 
-              onClick={() => {
-                navigator.clipboard.writeText(currentUrl);
-                alert('Link formulir berhasil disalin!');
-              }}
-              className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium rounded-xl transition-colors text-sm flex justify-center items-center gap-2"
-            >
-              <FileText className="w-4 h-4"/> Salin Link Manual
-            </button>
-          </div>
+
+            <div id="formContainer" class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+                <div class="bg-blue-600 h-2 md:h-3 w-full"></div>
+                <div class="p-4 sm:p-6 md:p-10">
+                    <div class="mb-6 md:mb-8 border-b border-gray-100 pb-4 md:pb-6 text-center md:text-left">
+                        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2 leading-tight">Formulir Data Karyawan<br class="block md:hidden"/> PT Hop Lun Indonesia</h1>
+                        <p class="text-red-600 font-bold text-sm md:text-lg mt-1">Data WAJIB diisi sesuai dengan KTP</p>
+                    </div>
+
+                    <form id="karyawanForm" class="space-y-6 md:space-y-10">
+                        
+                        <!-- Bagian 1: Data Pribadi -->
+                        <div class="bg-slate-50 p-4 md:p-6 rounded-xl border border-slate-200">
+                            <h2 class="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                                <i data-lucide="users" class="w-5 h-5 text-blue-600"></i> Data Pribadi
+                            </h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                                <div class="space-y-1.5 w-full">
+                                    <label class="text-sm font-medium text-gray-700">Nama Lengkap <span class="text-red-500">*</span></label>
+                                    <input required type="text" id="inputNamaLengkap" name="namaLengkap" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none no-number-name uppercase" placeholder="Sesuai KTP">
+                                </div>
+                                <div class="space-y-1.5 w-full">
+                                    <label class="text-sm font-medium text-gray-700">Nomor KTP <span class="text-red-500">*</span></label>
+                                    <input required type="text" inputmode="numeric" maxlength="16" id="inputKTP" name="nomorKTP" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="16 Digit NIK">
+                                    <p id="err-ktp" class="text-red-500 text-xs mt-1 hidden font-medium">❌ Nomor KTP wajib 16 digit!</p>
+                                </div>
+                                <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Jenis Kelamin <span class="text-red-500">*</span></label>
+                                    <select required name="jenisKelamin" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                        <option value="">Pilih Jenis Kelamin</option>
+                                        <option value="MALE">MALE (Laki-laki)</option>
+                                        <option value="FEMALE">FEMALE (Perempuan)</option>
+                                    </select></div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 md:col-span-2">
+                                    <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Tempat Lahir <span class="text-red-500">*</span></label>
+                                        <input required type="text" name="tempatLahir" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase"></div>
+                                    <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Tanggal Lahir <span class="text-red-500">*</span></label>
+                                        <input required type="date" id="inputTglLahir" name="tanggalLahir" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                        <p id="err-tgl" class="text-red-500 text-xs mt-1 hidden font-medium">⚠️ Cek lagi tanggal lahir anda. Usia minimal 17 tahun.</p>
+                                    </div>
+                                </div>
+                                <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Agama <span class="text-red-500">*</span></label>
+                                    <select required name="agama" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                        <option value="">Pilih Agama</option>
+                                        <option value="ISLAM">ISLAM</option>
+                                        <option value="KRISTEN">KRISTEN</option>
+                                        <option value="KATOLIK">KATOLIK</option>
+                                        <option value="HINDU">HINDU</option>
+                                        <option value="BUDDHA">BUDDHA</option>
+                                        <option value="KONGHUCU">KONGHUCU</option>
+                                    </select></div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 md:col-span-2">
+                                    <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Status Pernikahan <span class="text-red-500">*</span></label>
+                                        <select required id="statusPernikahan" name="statusPernikahan" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                            <option value="">Pilih Status</option>
+                                            <option value="SINGLE">SINGLE (Lajang)</option>
+                                            <option value="MARRIED">MARRIED (Menikah)</option>
+                                            <option value="WIDOW">WIDOW (Janda / Duda)</option>
+                                        </select></div>
+                                    <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Jumlah Anak <span class="text-red-500">*</span></label>
+                                        <select required id="jumlahAnak" name="jumlahAnak" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-100" disabled>
+                                            <option value="">Pilih Status Dahulu</option>
+                                        </select></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bagian 2: Kontak & Domisili -->
+                        <div class="bg-slate-50 p-4 md:p-6 rounded-xl border border-slate-200">
+                            <h2 class="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                                <i data-lucide="map-pin" class="w-5 h-5 text-blue-600"></i> Kontak & Domisili
+                            </h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                                <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">No Handphone Aktif <span class="text-red-500">*</span></label>
+                                    <input required type="text" inputmode="numeric" id="inputNoHP" name="noHandphone" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="08xxxx"></div>
+                                <div class="space-y-1.5 w-full">
+                                    <label class="text-sm font-medium text-gray-700">Alamat Email</label>
+                                    <input type="email" id="inputEmail" name="alamatEmail" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none lowercase" placeholder="email@contoh.com">
+                                    <p id="err-email" class="text-red-500 text-xs mt-1 hidden font-medium">❌ Format email tidak sesuai!</p>
+                                </div>
+                                
+                                <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Provinsi <span class="text-red-500">*</span></label>
+                                    <select required id="provinsi" name="provinsi" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white max-w-full text-ellipsis">
+                                        <option value="" data-id="">Pilih Provinsi</option>
+                                    </select></div>
+                                <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Kabupaten/Kota <span class="text-red-500">*</span></label>
+                                    <select required id="kabupaten" name="kabupaten" disabled class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none disabled:bg-gray-100 disabled:text-gray-400 bg-white max-w-full text-ellipsis">
+                                        <option value="" data-id="">Pilih Kabupaten</option>
+                                    </select></div>
+                                <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Kecamatan <span class="text-red-500">*</span></label>
+                                    <select required id="kecamatan" name="kecamatan" disabled class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none disabled:bg-gray-100 disabled:text-gray-400 bg-white max-w-full text-ellipsis">
+                                        <option value="" data-id="">Pilih Kecamatan</option>
+                                    </select></div>
+                                <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Kelurahan <span class="text-red-500">*</span></label>
+                                    <select required id="kelurahan" name="kelurahan" disabled class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none disabled:bg-gray-100 disabled:text-gray-400 bg-white max-w-full text-ellipsis">
+                                        <option value="">Pilih Kelurahan</option>
+                                    </select></div>
+
+                                <div class="grid grid-cols-2 gap-4 md:gap-5 md:col-span-2">
+                                    <div class="space-y-1.5 w-full">
+                                        <label class="text-sm font-medium text-gray-700">RT (2 digit) <span class="text-red-500">*</span></label>
+                                        <input required type="text" inputmode="numeric" maxlength="2" id="inputRT" name="rt" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none" placeholder="01">
+                                    </div>
+                                    <div class="space-y-1.5 w-full">
+                                        <label class="text-sm font-medium text-gray-700">RW (2 digit) <span class="text-red-500">*</span></label>
+                                        <input required type="text" inputmode="numeric" maxlength="2" id="inputRW" name="rw" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none" placeholder="02">
+                                    </div>
+                                </div>
+                                <div class="md:col-span-2 space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Desa/Dukuh/Jalan <span class="text-red-500">*</span></label>
+                                    <textarea required name="alamatDesa" rows="2" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none uppercase" placeholder="Tulis Alamat Rumah"></textarea></div>
+                            </div>
+                        </div>
+
+                        <!-- Bagian 3: Pendidikan & Pengalaman -->
+                        <div class="bg-slate-50 p-4 md:p-6 rounded-xl border border-slate-200">
+                            <h2 class="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                                <i data-lucide="graduation-cap" class="w-5 h-5 text-blue-600"></i> Pendidikan & Pengalaman
+                            </h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                                <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Pendidikan Terakhir <span class="text-red-500">*</span></label>
+                                    <select required name="pendidikanTerakhir" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none bg-white">
+                                        <option value="">Pilih Pendidikan</option>
+                                        <option value="SD">SD</option><option value="SMP">SMP</option>
+                                        <option value="SMA/SMK">SMA/SMK</option>
+                                        <option value="D1">D1</option><option value="D2">D2</option><option value="D3">D3</option>
+                                        <option value="D4">D4</option><option value="S1">S1</option><option value="S2">S2</option>
+                                    </select></div>
+                                <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Jurusan Sekolah</label>
+                                    <input type="text" name="jurusanSekolah" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none uppercase" placeholder="Isi untuk SMA keatas"></div>
+                                
+                                <div class="space-y-1.5 md:col-span-2 w-full"><label class="text-sm font-medium text-gray-700">Pengalaman Garment? <span class="text-red-500">*</span></label>
+                                    <select required id="pengalamanGarment" name="pengalamanGarment" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none bg-white">
+                                        <option value="">Pilih</option>
+                                        <option value="YA">YA</option>
+                                        <option value="TIDAK">TIDAK</option>
+                                    </select></div>
+                                
+                                <!-- Hidden Fields if Pengalaman = YA -->
+                                <div id="pengalamanFields" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 bg-white p-4 rounded-xl border border-gray-200 mt-2 w-full">
+                                    <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Nama Perusahaan</label>
+                                        <input type="text" id="inputNamaPerusahaan" name="namaPerusahaan" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none uppercase"></div>
+                                    <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Bagian / Posisi</label>
+                                        <input type="text" id="inputBagian" name="bagian" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none uppercase"></div>
+                                    <div class="space-y-1.5 w-full">
+                                        <label class="text-sm font-medium text-gray-700">Lama Bekerja</label>
+                                        <div class="flex gap-2">
+                                            <div class="flex-1 flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 bg-white">
+                                                <input type="number" step="any" min="0" id="inputLamaTahun" name="lamaBekerjaTahun" class="w-full px-3 py-2.5 md:py-3 outline-none" placeholder="0">
+                                                <span class="pr-3 text-gray-500 text-sm font-medium bg-gray-50 h-full flex items-center border-l border-gray-200 px-2">Tahun</span>
+                                            </div>
+                                            <div class="flex-1 flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 bg-white">
+                                                <input type="number" step="any" min="0" id="inputLamaBulan" name="lamaBekerjaBulan" class="w-full px-3 py-2.5 md:py-3 outline-none" placeholder="0">
+                                                <span class="pr-3 text-gray-500 text-sm font-medium bg-gray-50 h-full flex items-center border-l border-gray-200 px-2">Bulan</span>
+                                            </div>
+                                        </div>
+                                        <p id="err-lama" class="text-red-500 text-xs mt-1 hidden font-medium">❌ Wajib diisi (Tahun/Bulan)!</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bagian 4: Data Keluarga -->
+                        <div class="bg-slate-50 p-4 md:p-6 rounded-xl border border-slate-200">
+                            <h2 class="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                                <i data-lucide="heart" class="w-5 h-5 text-blue-600"></i> Data Keluarga
+                            </h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                                <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Nama Ibu Kandung <span class="text-red-500">*</span></label>
+                                    <input required type="text" name="namaIbuKandung" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none no-number-name uppercase"></div>
+                                <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Nama Ayah Kandung <span class="text-red-500">*</span></label>
+                                    <input required type="text" name="namaAyahKandung" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none no-number-name uppercase"></div>
+
+                                <!-- Pasangan Container -->
+                                <div id="pasanganContainer" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 border-t border-gray-200 pt-4 mt-2">
+                                    <p class="text-sm text-gray-500 mb-1 md:col-span-2 italic">Wajib diisi jika sudah menikah:</p>
+                                    
+                                    <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Nama Suami / Istri <span class="text-red-500">*</span></label>
+                                        <input type="text" id="inputSuamiIstri" name="namaSuamiIstri" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none no-number-name uppercase"></div>
+                                    <div class="hidden md:block"></div>
+                                    
+                                    <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Nama Ibu Mertua <span class="text-red-500">*</span></label>
+                                        <input type="text" id="inputIbuMertua" name="namaIbuMertua" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none no-number-name uppercase"></div>
+                                    <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Nama Ayah Mertua <span class="text-red-500">*</span></label>
+                                        <input type="text" id="inputAyahMertua" name="namaAyahMertua" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none no-number-name uppercase"></div>
+                                </div>
+
+                                <!-- Anak Container -->
+                                <div id="anakContainer" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 border-t border-gray-200 pt-4 mt-2">
+                                    <p class="text-sm text-gray-500 mb-1 md:col-span-2 italic">Data Anak (Wajib diisi jika punya anak):</p>
+                                    
+                                    <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Nama Anak Pertama <span class="text-red-500">*</span></label>
+                                        <input type="text" id="inputAnak1" name="namaAnak1" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none no-number-name uppercase"></div>
+                                    <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Nama Anak Kedua</label>
+                                        <input type="text" id="inputAnak2" name="namaAnak2" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none no-number-name uppercase"></div>
+                                    <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Nama Anak Ketiga</label>
+                                        <input type="text" id="inputAnak3" name="namaAnak3" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none no-number-name uppercase"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bagian 5: Kontak Darurat -->
+                        <div class="bg-red-50 p-4 md:p-6 rounded-xl border border-red-100">
+                            <h2 class="text-base md:text-lg font-bold text-red-800 flex items-center gap-2 mb-4">
+                                <i data-lucide="alert-circle" class="w-5 h-5 text-red-600"></i> 
+                                Kontak Darurat 
+                                <span class="text-[10px] md:text-sm font-normal text-red-600 italic ml-2">(Tidak boleh data diri sendiri)</span>
+                            </h2>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+                                <div class="space-y-1.5 w-full">
+                                    <label class="text-sm font-medium text-gray-700">Nama Kontak <span class="text-red-500">*</span></label>
+                                    <input required type="text" id="inputNamaDarurat" name="namaKontakDarurat" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-400 outline-none uppercase">
+                                    <p id="err-nama-darurat" class="text-red-500 text-xs mt-1 hidden font-medium">❌ Tidak boleh diri sendiri!</p>
+                                </div>
+                                <div class="space-y-1.5 w-full">
+                                    <label class="text-sm font-medium text-gray-700">No Telp / WA <span class="text-red-500">*</span></label>
+                                    <input required type="text" inputmode="numeric" id="inputTelpDarurat" name="noTelpDarurat" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-400 outline-none">
+                                    <p id="err-telp-darurat" class="text-red-500 text-xs mt-1 hidden font-medium">❌ Tidak boleh diri sendiri!</p>
+                                </div>
+                                <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Hubungan <span class="text-red-500">*</span></label>
+                                    <input required type="text" name="hubungan" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-400 outline-none uppercase" placeholder="Cth: Suami/Istri/Ortu"></div>
+                            </div>
+                        </div>
+
+                        <!-- Bagian Tambahan: Upload Pas Foto -->
+                        <div class="bg-blue-50 p-4 md:p-6 rounded-xl border border-blue-200">
+                            <h2 class="text-base md:text-lg font-bold text-blue-800 flex items-center gap-2 mb-4">
+                                <i data-lucide="camera" class="w-5 h-5 text-blue-600"></i> Pas Foto Resmi
+                            </h2>
+                            <div class="space-y-3">
+                                <label class="text-sm font-medium text-gray-700">Silakan pilih metode upload foto: <span class="text-gray-500 font-normal italic ml-1">(Tidak Wajib)</span></label>
+                                
+                                <input type="file" id="inputFotoKamera" accept="image/*" capture="environment" class="hidden">
+                                <input type="file" id="inputFotoGaleri" accept="image/*" class="hidden">
+                                
+                                <div class="flex flex-col sm:flex-row gap-3 mt-2">
+                                    <button type="button" onclick="document.getElementById('inputFotoKamera').click()" class="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center gap-2 transition-colors text-sm font-medium shadow-sm">
+                                        <i data-lucide="camera" class="w-5 h-5"></i> Buka Kamera
+                                    </button>
+                                    <button type="button" onclick="document.getElementById('inputFotoGaleri').click()" class="flex-1 py-3 px-4 bg-slate-600 hover:bg-slate-700 text-white rounded-lg flex items-center justify-center gap-2 transition-colors text-sm font-medium shadow-sm">
+                                        <i data-lucide="image" class="w-5 h-5"></i> Pilih dari Galeri
+                                    </button>
+                                </div>
+                                
+                                <p class="text-xs text-gray-500 mt-3">Sistem otomatis akan memproses foto Anda menjadi pas foto resmi berlatar putih.</p>
+                                <div id="fotoPreviewContainer" class="hidden mt-4 text-center sm:text-left">
+                                    <p class="text-xs font-bold text-green-600 mb-2">Hasil Foto Terunggah:</p>
+                                    <img id="fotoPreview" src="" class="w-32 h-40 object-cover rounded-lg border-2 border-blue-400 shadow-md mx-auto sm:mx-0" alt="Preview Foto">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-gray-200 flex flex-col sm:flex-row justify-end gap-4">
+                            <button type="button" id="btnClearForm" class="w-full sm:w-auto py-3.5 md:py-4 px-8 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-lg transition-all shadow-sm">
+                                BERSIHKAN
+                            </button>
+                            <button type="submit" id="btnSubmit" class="w-full sm:w-auto md:min-w-[300px] py-3.5 md:py-4 px-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 tracking-wide">
+                                KIRIM DATA KARYAWAN
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-      )}
+
+        <!-- VIEW 2: DATABASE ADMIN -->
+        <div id="viewAdmin" class="hidden fade-in bg-white rounded-2xl shadow-xl overflow-hidden w-full mx-auto border border-gray-100 flex-col h-[85vh] my-4">
+            <div class="bg-slate-800 p-4 md:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-white">
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold flex items-center gap-2">
+                        <i data-lucide="table-properties" class="w-5 h-5 md:w-6 md:h-6 text-blue-400"></i> Database Karyawan Baru
+                    </h1>
+                    <p class="text-slate-400 text-xs md:text-sm mt-1">Gunakan "Export Excel" untuk mengunduh seluruh data dalam format .xlsx</p>
+                </div>
+                <div class="flex gap-2 flex-wrap w-full sm:w-auto">
+                    <button id="btnOpenChangePwd" class="flex-1 sm:flex-none px-3 py-2 bg-amber-600 hover:bg-amber-500 rounded-lg flex justify-center items-center gap-2 transition-colors text-xs md:text-sm font-medium shadow-md">
+                        <i data-lucide="key" class="w-4 h-4"></i> Ganti Password
+                    </button>
+                    <button id="btnShareQR" class="flex-1 sm:flex-none px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg flex justify-center items-center gap-2 transition-colors text-xs md:text-sm font-medium shadow-md">
+                        <i data-lucide="qr-code" class="w-4 h-4"></i> Share QR
+                    </button>
+                    <button id="btnExportExcel" class="flex-1 sm:flex-none px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg flex justify-center items-center gap-2 transition-colors text-xs md:text-sm font-medium shadow-md">
+                        <i data-lucide="download" class="w-4 h-4"></i> Export Excel
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-auto p-0 bg-gray-50">
+                <table class="w-full text-left text-xs md:text-sm whitespace-nowrap min-w-max">
+                    <thead class="bg-slate-100 text-slate-700 sticky top-0 z-10 shadow-sm border-b border-gray-200">
+                        <tr>
+                            <th class="px-4 py-3 font-semibold">Waktu Submit</th>
+                            <th class="px-4 py-3 font-semibold">Foto Karyawan</th>
+                            <th class="px-4 py-3 font-semibold">Nama Lengkap</th>
+                            <th class="px-4 py-3 font-semibold">Pengalaman Garment</th>
+                            <th class="px-4 py-3 font-semibold">Nama Perusahaan</th>
+                            <th class="px-4 py-3 font-semibold">Bagian</th>
+                            <th class="px-4 py-3 font-semibold">Lama Bekerja</th>
+                            <th class="px-4 py-3 font-semibold">Jenis Kelamin</th>
+                            <th class="px-4 py-3 font-semibold">Tempat Lahir</th>
+                            <th class="px-4 py-3 font-semibold">Tanggal Lahir</th>
+                            <th class="px-4 py-3 font-semibold">Status Pernikahan</th>
+                            <th class="px-4 py-3 font-semibold">Jumlah Anak</th>
+                            <th class="px-4 py-3 font-semibold">Agama</th>
+                            <th class="px-4 py-3 font-semibold">Alamat Email</th>
+                            <th class="px-4 py-3 font-semibold">No Handphone</th>
+                            <th class="px-4 py-3 font-semibold">Nomor KTP</th>
+                            <th class="px-4 py-3 font-semibold">Provinsi</th>
+                            <th class="px-4 py-3 font-semibold">Kabupaten</th>
+                            <th class="px-4 py-3 font-semibold">Kecamatan</th>
+                            <th class="px-4 py-3 font-semibold">Kelurahan</th>
+                            <th class="px-4 py-3 font-semibold">RT</th>
+                            <th class="px-4 py-3 font-semibold">RW</th>
+                            <th class="px-4 py-3 font-semibold">Desa/Dukuh/Jalan</th>
+                            <th class="px-4 py-3 font-semibold">Pendidikan Terakhir</th>
+                            <th class="px-4 py-3 font-semibold">Jurusan Sekolah</th>
+                            <th class="px-4 py-3 font-semibold">Nama Ibu Kandung</th>
+                            <th class="px-4 py-3 font-semibold">Nama Ayah Kandung</th>
+                            <th class="px-4 py-3 font-semibold">Nama Suami/Istri</th>
+                            <th class="px-4 py-3 font-semibold">Nama Ibu Mertua</th>
+                            <th class="px-4 py-3 font-semibold">Nama Ayah Mertua</th>
+                            <th class="px-4 py-3 font-semibold">Nama Anak Pertama</th>
+                            <th class="px-4 py-3 font-semibold">Nama Anak Kedua</th>
+                            <th class="px-4 py-3 font-semibold">Nama Anak Ketiga</th>
+                            <th class="px-4 py-3 font-semibold">Nama Kontak Darurat</th>
+                            <th class="px-4 py-3 font-semibold">No Telp Darurat</th>
+                            <th class="px-4 py-3 font-semibold">Hubungan</th>
+                            <th class="px-4 py-3 font-semibold">Alamat Lengkap</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-gray-200 bg-white">
+                        <tr><td colspan="37" class="px-6 py-12 text-center text-gray-500">Memuat data / Belum ada data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Login Admin -->
+    <div id="authModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 md:p-8 max-w-sm w-full relative">
+            <button id="btnCloseAuth" class="absolute right-4 top-4 text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full p-1">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div class="w-12 h-12 md:w-16 md:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
+                <i data-lucide="lock" class="w-6 h-6 md:w-8 md:h-8"></i>
+            </div>
+            <h3 class="text-lg md:text-xl font-bold mb-2 text-center">Akses Admin</h3>
+            <p class="text-gray-500 text-xs md:text-sm mb-6 text-center">Masukkan password untuk melihat database.</p>
+            <form id="authForm" class="space-y-4">
+                <input type="password" id="authPassword" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Masukkan password..." required>
+                <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors">Masuk</button>
+            </form>
+        </div>
     </div>
-  );
-}
+
+    <!-- Modal Ganti Password -->
+    <div id="changePwdModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 md:p-8 max-w-sm w-full relative">
+            <button id="btnCloseChangePwd" class="absolute right-4 top-4 text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full p-1">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h3 class="text-lg md:text-xl font-bold mb-6 text-center">Ganti Password Admin</h3>
+            <form id="changePwdForm" class="space-y-4">
+                <div class="space-y-1">
+                    <label class="text-xs md:text-sm font-medium text-gray-700">Password Lama</label>
+                    <input type="password" id="oldPwd" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none" required>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs md:text-sm font-medium text-gray-700">Password Baru</label>
+                    <input type="password" id="newPwd" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-amber-500 outline-none" required>
+                </div>
+                <button type="submit" class="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-colors mt-2">Simpan Password</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal QR Code -->
+    <div id="qrModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 md:p-8 max-w-sm w-full text-center relative">
+            <button id="btnCloseQR" class="absolute right-4 top-4 text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full p-1">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h3 class="text-lg md:text-xl font-bold mb-2">Scan Barcode Ini</h3>
+            <p class="text-gray-500 text-xs md:text-sm mb-4">Minta karyawan baru scan barcode ini untuk mengisi form.</p>
+            <div class="bg-white p-4 rounded-xl border-2 border-dashed border-gray-200 inline-block mb-6 shadow-sm w-full">
+                <img id="qrImage" src="" alt="QR Code" class="w-40 h-40 md:w-48 md:h-48 mx-auto" />
+                <div id="qrWarning" class="hidden text-red-600 text-sm font-bold p-3 bg-red-50 rounded border border-red-200 text-left">
+                    ⚠️ ERROR: Anda sedang membuka file secara Offline (Local). Barcode tidak akan berfungsi dan tidak bisa di-scan HP sebelum file HTML ini di-upload ke Hosting/Internet.
+                </div>
+            </div>
+            <button id="btnCopyLink" class="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium rounded-xl transition-colors text-xs md:text-sm flex justify-center items-center gap-2">
+                <i data-lucide="file-text" class="w-4 h-4"></i> Salin Link Manual
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-[100] flex-col items-center justify-center text-center px-4">
+        <div class="animate-spin rounded-full h-12 w-12 md:h-16 md:w-16 border-t-4 border-b-4 border-blue-600 mb-4 mx-auto"></div>
+        <p id="loadingText" class="text-lg md:text-xl font-bold text-gray-800 mb-2">Menyimpan Data...</p>
+        <p id="loadingSubText" class="text-xs md:text-sm text-gray-700">Mohon tunggu sebentar.</p>
+    </div>
+
+    <!-- Toast Notification UI -->
+    <div id="toast" class="fixed bottom-4 right-4 left-4 sm:left-auto bg-green-600 text-white px-4 md:px-6 py-3 rounded-xl shadow-lg transform transition-all duration-300 translate-y-20 opacity-0 z-[200] flex items-center gap-2 text-sm md:text-base">
+        <i data-lucide="info" class="w-5 h-5 flex-shrink-0"></i>
+        <span id="toastMessage" class="font-medium truncate">Pesan</span>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // HARAP PASTIKAN LINK INI SESUAI DENGAN DEPLOY GOOGLE APPS SCRIPT ANDA
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-q_FMoXKG2nyX16EHg6x3QWEL7bMWzWtSopMlM5wWWVhdg0cyyCeBfr2e5LmXxYV5fA/exec";
+
+        let app, auth, db, appId;
+        let globalEmployees = [];
+
+        lucide.createIcons();
+
+        // ----------------------------------------------------
+        // SISTEM TOAST
+        // ----------------------------------------------------
+        window.showToast = function(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMessage');
+            toastMsg.textContent = message;
+            
+            if(type === 'error') {
+                toast.classList.remove('bg-green-600'); toast.classList.add('bg-red-600');
+            } else {
+                toast.classList.remove('bg-red-600'); toast.classList.add('bg-green-600');
+            }
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
+        };
+
+        // ----------------------------------------------------
+        // SETTING TANGGAL LAHIR MINIMAL 17 TAHUN
+        // ----------------------------------------------------
+        const elTglLahir = document.getElementById('inputTglLahir');
+        const errTgl = document.getElementById('err-tgl');
+        
+        // Hitung tanggal 17 tahun yang lalu dari hari ini
+        const dt = new Date();
+        dt.setFullYear(dt.getFullYear() - 17);
+        const maxDateStr = dt.toISOString().split('T')[0];
+        
+        // Set max atribut pada input kalender
+        elTglLahir.setAttribute('max', maxDateStr);
+
+        elTglLahir.addEventListener('change', function() {
+            const selectedDate = new Date(this.value);
+            if (selectedDate > dt) {
+                errTgl.classList.remove('hidden');
+                elTglLahir.classList.add('border-red-500', 'text-red-600');
+                showToast("Usia minimal harus 17 Tahun!", "error");
+                this.value = ''; // Kosongkan jika salah
+            } else {
+                errTgl.classList.add('hidden');
+                elTglLahir.classList.remove('border-red-500', 'text-red-600');
+            }
+        });
+
+        // ----------------------------------------------------
+        // UPLOAD FOTO (KAMERA / GALERI) & AI BACKGROUND REMOVAL
+        // ----------------------------------------------------
+        let fotoBase64Data = "";
+        let fotoFileName = "";
+        
+        const inputFotoKamera = document.getElementById('inputFotoKamera');
+        const inputFotoGaleri = document.getElementById('inputFotoGaleri');
+        const fotoPreview = document.getElementById('fotoPreview');
+        const fotoPreviewContainer = document.getElementById('fotoPreviewContainer');
+
+        async function handleFotoUpload(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            
+            if (e.target.id === 'inputFotoKamera') inputFotoGaleri.value = "";
+            else inputFotoKamera.value = "";
+
+            fotoFileName = file.name || "foto.jpg";
+            
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const loadingText = document.getElementById('loadingText');
+            const loadingSubText = document.getElementById('loadingSubText');
+
+            loadingOverlay.classList.add('active');
+            loadingText.textContent = "Memproses Pas Foto...";
+            loadingSubText.textContent = "Sedang menghapus background asli dan mengubah jadi putih. Ini butuh beberapa saat...";
+
+            try {
+                // TAHAP 1: PRE-COMPRESSION
+                const preCompressedBlob = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const img = new Image();
+                        img.onload = function() {
+                            const canvas = document.createElement('canvas');
+                            const MAX_WIDTH = 800; 
+                            let width = img.width;
+                            let height = img.height;
+                            
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                            canvas.width = width;
+                            canvas.height = height;
+                            
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            
+                            canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.8);
+                        };
+                        img.onerror = reject;
+                        img.src = event.target.result;
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+
+                // TAHAP 2: PROSES AI HAPUS BACKGROUND
+                let transparentBlob = preCompressedBlob;
+                if (typeof imglyRemoveBackground !== 'undefined') {
+                    transparentBlob = await imglyRemoveBackground(preCompressedBlob, {
+                        publicPath: "https://unpkg.com/@imgly/background-removal@1.4.3/dist/"
+                    });
+                }
+
+                // TAHAP 3: TAMBAHKAN WARNA PUTIH & EXPORT
+                const reader2 = new FileReader();
+                reader2.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0);
+                        
+                        const finalDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        fotoBase64Data = finalDataUrl.split(',')[1];
+                        
+                        fotoPreview.src = finalDataUrl;
+                        fotoPreviewContainer.classList.remove('hidden');
+                        
+                        loadingOverlay.classList.remove('active');
+                        showToast("Pas foto background putih berhasil disiapkan!", "success");
+                    }
+                    img.src = event.target.result;
+                }
+                reader2.readAsDataURL(transparentBlob);
+
+            } catch (err) {
+                console.error("Proses Foto Error:", err);
+                loadingOverlay.classList.remove('active');
+                showToast("Gagal memproses foto. Pastikan wajah Anda terlihat jelas.", "error");
+                inputFotoKamera.value = ""; 
+                inputFotoGaleri.value = ""; 
+            }
+        }
+
+        inputFotoKamera.addEventListener('change', handleFotoUpload);
+        inputFotoGaleri.addEventListener('change', handleFotoUpload);
+
+        // ----------------------------------------------------
+        // LOGIKA HURUF BESAR (UPPERCASE) OTOMATIS (BUG-FIXED SEPENUHNYA)
+        // ----------------------------------------------------
+        document.addEventListener('input', function(e) {
+            const tag = e.target.tagName.toLowerCase();
+            if (tag === 'input' || tag === 'textarea') {
+                const type = e.target.type.toLowerCase();
+                
+                // Jangan paksa huruf besar untuk input yang rentan error
+                const unsupportedTypes = ['checkbox', 'radio', 'file', 'number', 'date', 'datetime-local', 'month', 'time', 'week', 'range', 'color'];
+                if (unsupportedTypes.includes(type)) return;
+                if (e.target.getAttribute('inputmode') === 'numeric') return;
+
+                try {
+                    const start = e.target.selectionStart;
+                    const end = e.target.selectionEnd;
+                    
+                    if (type === 'email' || e.target.id === 'inputEmail') {
+                        e.target.value = e.target.value.toLowerCase();
+                    } else {
+                        e.target.value = e.target.value.toUpperCase();
+                    }
+                    
+                    if (e.target.setSelectionRange) {
+                        e.target.setSelectionRange(start, end);
+                    }
+                } catch(err) {
+                    // Abaikan jika browser menolak (aman dari layar putih)
+                }
+            }
+        });
+
+        // ----------------------------------------------------
+        // VALIDASI REAL-TIME & FOCUS TRAP
+        // ----------------------------------------------------
+        const elNamaLengkap = document.getElementById('inputNamaLengkap');
+        const errNama = document.getElementById('err-nama');
+
+        const elKTP = document.getElementById('inputKTP');
+        const errKTP = document.getElementById('err-ktp');
+
+        const elNamaDarurat = document.getElementById('inputNamaDarurat');
+        const errNamaDarurat = document.getElementById('err-nama-darurat');
+        const elTelpDarurat = document.getElementById('inputTelpDarurat');
+        const elNoHP = document.getElementById('inputNoHP');
+        const errTelpDarurat = document.getElementById('err-telp-darurat');
+
+        const elEmail = document.getElementById('inputEmail');
+        const errEmail = document.getElementById('err-email');
+        
+        const elRT = document.getElementById('inputRT');
+        const elRW = document.getElementById('inputRW');
+
+        document.querySelectorAll('.no-number-name').forEach(el => {
+            el.addEventListener('input', function() {
+                if (/\d/.test(this.value)) {
+                    this.value = this.value.replace(/\d/g, ''); 
+                    showToast('Nama tidak boleh diisi dengan angka!', 'error');
+                }
+                if(this.id === 'inputNamaLengkap') validasiKontakDarurat();
+            });
+        });
+
+        elKTP.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); });
+        elKTP.addEventListener('blur', function() {
+            if (this.value.length > 0 && this.value.length !== 16) {
+                errKTP.classList.remove('hidden');
+                setTimeout(() => this.focus(), 10);
+            } else {
+                errKTP.classList.add('hidden');
+            }
+        });
+
+        elEmail.addEventListener('blur', function() {
+            const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (this.value.length > 0 && !regex.test(this.value)) {
+                errEmail.classList.remove('hidden');
+                setTimeout(() => this.focus(), 10);
+            } else {
+                errEmail.classList.add('hidden');
+            }
+        });
+
+        function checkRTRW(el) {
+            if (el.value.length > 0 && el.value.length < 2) {
+                showToast(el.placeholder + ' harus 2 digit angka!', 'error');
+                setTimeout(() => el.focus(), 10);
+            }
+        }
+        elRT.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); });
+        elRW.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); });
+        elRT.addEventListener('blur', function() { checkRTRW(this); });
+        elRW.addEventListener('blur', function() { checkRTRW(this); });
+
+        document.querySelectorAll('input[inputmode="numeric"]:not(#inputKTP):not(#inputRT):not(#inputRW)').forEach(el => {
+            el.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); });
+        });
+
+        const elLamaTahun = document.getElementById('inputLamaTahun');
+        const elLamaBulan = document.getElementById('inputLamaBulan');
+        const errLama = document.getElementById('err-lama');
+
+        function checkLamaBekerja() {
+            if(document.getElementById('pengalamanGarment').value === 'YA') {
+                if (elLamaTahun.value === '' && elLamaBulan.value === '') { 
+                    errLama.classList.remove('hidden'); 
+                } else { 
+                    errLama.classList.add('hidden'); 
+                }
+            }
+        }
+        if(elLamaTahun) elLamaTahun.addEventListener('blur', checkLamaBekerja);
+        if(elLamaBulan) elLamaBulan.addEventListener('blur', checkLamaBekerja);
+
+        function validasiKontakDarurat() {
+            const namaLengkapVal = elNamaLengkap.value.toLowerCase().trim();
+            const namaDaruratVal = elNamaDarurat.value.toLowerCase().trim();
+            const hpVal = elNoHP.value.trim();
+            const telpDaruratVal = elTelpDarurat.value.trim();
+
+            if (namaDaruratVal && namaLengkapVal && namaDaruratVal === namaLengkapVal) {
+                errNamaDarurat.classList.remove('hidden'); elNamaDarurat.setCustomValidity("Nama tidak boleh sama!");
+            } else { errNamaDarurat.classList.add('hidden'); elNamaDarurat.setCustomValidity(""); }
+
+            if (telpDaruratVal && hpVal && telpDaruratVal === hpVal) {
+                errTelpDarurat.classList.remove('hidden'); elTelpDarurat.setCustomValidity("Nomor tidak boleh sama!");
+            } else { errTelpDarurat.classList.add('hidden'); elTelpDarurat.setCustomValidity(""); }
+        }
+        elNamaDarurat.addEventListener('input', validasiKontakDarurat);
+        elTelpDarurat.addEventListener('input', validasiKontakDarurat);
+        elNoHP.addEventListener('input', validasiKontakDarurat);
+
+        // ----------------------------------------------------
+        // STATUS PERNIKAHAN & JUMLAH ANAK
+        // ----------------------------------------------------
+        const elStatus = document.getElementById('statusPernikahan');
+        const elAnak = document.getElementById('jumlahAnak');
+        const pasanganContainer = document.getElementById('pasanganContainer');
+        const anakContainer = document.getElementById('anakContainer');
+
+        const opsiAnak = {
+            "SINGLE": [{val: "TK0", text: "TK0"}],
+            "MARRIED": [
+                {val: "K0", text: "K0"}, {val: "K1", text: "K1"}, {val: "K2", text: "K2"}, {val: "K3", text: "K3"}
+            ],
+            "WIDOW": [
+                {val: "TK0", text: "TK0"}, {val: "TK1", text: "TK1"}, {val: "TK2", text: "TK2"}, {val: "TK3", text: "TK3"}
+            ]
+        };
+
+        function resetStatusAnak() {
+            elAnak.innerHTML = '<option value="">Pilih Jumlah Anak</option>';
+            pasanganContainer.classList.add('hidden');
+            anakContainer.classList.add('hidden');
+            pasanganContainer.querySelectorAll('input').forEach(el => el.required = false);
+            anakContainer.querySelectorAll('input').forEach(el => el.required = false);
+        }
+
+        elStatus.addEventListener('change', function() {
+            const status = this.value;
+            resetStatusAnak();
+            
+            if (status && opsiAnak[status]) {
+                opsiAnak[status].forEach(opt => {
+                    const o = document.createElement('option');
+                    o.value = opt.val; o.textContent = opt.text;
+                    elAnak.appendChild(o);
+                });
+                elAnak.disabled = false;
+                elAnak.classList.remove('bg-gray-100'); elAnak.classList.add('bg-white');
+            } else {
+                elAnak.disabled = true;
+                elAnak.classList.remove('bg-white'); elAnak.classList.add('bg-gray-100');
+                elAnak.innerHTML = '<option value="">Pilih Status Dahulu</option>';
+            }
+
+            if (status === 'MARRIED') {
+                pasanganContainer.classList.remove('hidden');
+                document.getElementById('inputSuamiIstri').required = true;
+                document.getElementById('inputIbuMertua').required = true;
+                document.getElementById('inputAyahMertua').required = true;
+            }
+        });
+
+        elAnak.addEventListener('change', function() {
+            const val = this.value;
+            if (val === 'K0' || val === 'TK0' || val === '') {
+                anakContainer.classList.add('hidden');
+                anakContainer.querySelectorAll('input').forEach(el => el.required = false);
+            } else {
+                anakContainer.classList.remove('hidden');
+                document.getElementById('inputAnak1').required = true;
+            }
+        });
+
+        document.getElementById('pengalamanGarment').addEventListener('change', function() {
+            const fields = document.getElementById('pengalamanFields');
+            
+            if (this.value === 'YA') {
+                fields.classList.remove('hidden');
+                document.getElementById('inputNamaPerusahaan').required = true;
+                document.getElementById('inputBagian').required = true;
+            } else {
+                fields.classList.add('hidden');
+                document.getElementById('inputNamaPerusahaan').required = false;
+                document.getElementById('inputBagian').required = false;
+                if(elLamaTahun) elLamaTahun.value = '';
+                if(elLamaBulan) elLamaBulan.value = '';
+                if(errLama) errLama.classList.add('hidden');
+            }
+        });
+
+        // ----------------------------------------------------
+        // SISTEM PASSWORD ADMIN & TAB
+        // ----------------------------------------------------
+        const DEFAULT_PASSWORD = "AGUNG";
+        function getAdminPassword() { return localStorage.getItem('app_admin_password') || DEFAULT_PASSWORD; }
+        function setAdminPassword(newPwd) { localStorage.setItem('app_admin_password', newPwd); }
+
+        const btnViewForm = document.getElementById('btnViewForm');
+        const btnViewAdmin = document.getElementById('btnViewAdmin');
+        const viewForm = document.getElementById('viewForm');
+        const viewAdmin = document.getElementById('viewAdmin');
+        const authModal = document.getElementById('authModal');
+        const authForm = document.getElementById('authForm');
+        const authPasswordInput = document.getElementById('authPassword');
+
+        btnViewForm.addEventListener('click', () => {
+            viewForm.style.display = 'block'; viewAdmin.style.display = 'none';
+            btnViewForm.classList.add('bg-white', 'shadow-sm', 'text-blue-600'); btnViewForm.classList.remove('text-gray-500');
+            btnViewAdmin.classList.remove('bg-white', 'shadow-sm', 'text-blue-600'); btnViewAdmin.classList.add('text-gray-500');
+        });
+
+        btnViewAdmin.addEventListener('click', () => {
+            if (viewAdmin.style.display === 'flex') return; 
+            authModal.classList.remove('hidden'); authModal.classList.add('flex');
+            authPasswordInput.focus();
+        });
+
+        document.getElementById('btnCloseAuth').addEventListener('click', () => {
+            authModal.classList.add('hidden'); authModal.classList.remove('flex');
+            authPasswordInput.value = '';
+        });
+
+        authForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (authPasswordInput.value === getAdminPassword()) {
+                authModal.classList.add('hidden'); authModal.classList.remove('flex');
+                authPasswordInput.value = '';
+                viewForm.style.display = 'none'; viewAdmin.style.display = 'flex';
+                btnViewAdmin.classList.add('bg-white', 'shadow-sm', 'text-blue-600'); btnViewAdmin.classList.remove('text-gray-500');
+                btnViewForm.classList.remove('bg-white', 'shadow-sm', 'text-blue-600'); btnViewForm.classList.add('text-gray-500');
+            } else {
+                showToast('Password yang Anda masukkan salah!', 'error');
+            }
+        });
+
+        const changePwdModal = document.getElementById('changePwdModal');
+        const changePwdForm = document.getElementById('changePwdForm');
+        document.getElementById('btnOpenChangePwd').addEventListener('click', () => {
+            changePwdModal.classList.remove('hidden'); changePwdModal.classList.add('flex');
+            document.getElementById('oldPwd').value = ''; document.getElementById('newPwd').value = '';
+            document.getElementById('oldPwd').focus();
+        });
+        document.getElementById('btnCloseChangePwd').addEventListener('click', () => { changePwdModal.classList.add('hidden'); changePwdModal.classList.remove('flex'); });
+
+        changePwdForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const oldPwdInput = document.getElementById('oldPwd').value;
+            const newPwdInput = document.getElementById('newPwd').value;
+            if (oldPwdInput !== getAdminPassword()) { showToast('Password Lama salah!', 'error'); return; }
+            if (newPwdInput.trim() === "") { showToast('Password Baru kosong!', 'error'); return; }
+            setAdminPassword(newPwdInput);
+            showToast('Password Admin berhasil diubah!', 'success');
+            changePwdModal.classList.add('hidden'); changePwdModal.classList.remove('flex');
+        });
+
+
+        // ----------------------------------------------------
+        // INISIALISASI FIREBASE
+        // ----------------------------------------------------
+        const initAuthData = async () => {
+            try {
+                const fbConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { projectId: "demo-app" };
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'karyawan-app-demo';
+                app = initializeApp(fbConfig); auth = getAuth(app); db = getFirestore(app);
+                
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) { await signInWithCustomToken(auth, __initial_auth_token); } 
+                else { await signInAnonymously(auth); }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user && db) {
+                        const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'employees'));
+                        onSnapshot(q, (snapshot) => {
+                            globalEmployees = snapshot.docs.map(doc => doc.data());
+                            globalEmployees.sort((a,b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+                            renderTable();
+                        }, (error) => console.error("Snapshot error:", error));
+                    }
+                });
+            } catch(e) { console.log("Berjalan Mode Lokal / Script"); }
+        };
+        initAuthData();
+
+        // ----------------------------------------------------
+        // API WILAYAH (EMSIFA)
+        // ----------------------------------------------------
+        const elProvinsi = document.getElementById('provinsi');
+        const elKabupaten = document.getElementById('kabupaten');
+        const elKecamatan = document.getElementById('kecamatan');
+        const elKelurahan = document.getElementById('kelurahan');
+
+        fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
+            .then(res => res.json())
+            .then(data => {
+                data.sort((a, b) => a.name.localeCompare(b.name));
+                data.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
+                    elProvinsi.appendChild(opt);
+                });
+            });
+
+        elProvinsi.addEventListener('change', function() {
+            const id = this.options[this.selectedIndex].dataset.id;
+            elKabupaten.innerHTML = '<option value="">Pilih Kabupaten</option>';
+            elKecamatan.innerHTML = '<option value="">Pilih Kecamatan</option>';
+            elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>';
+            elKabupaten.disabled = true; elKecamatan.disabled = true; elKelurahan.disabled = true;
+
+            if (id) {
+                fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${id}.json`)
+                .then(res => res.json())
+                .then(data => {
+                    data.sort((a, b) => a.name.localeCompare(b.name));
+                    data.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
+                        elKabupaten.appendChild(opt);
+                    });
+                    elKabupaten.disabled = false;
+                });
+            }
+        });
+
+        elKabupaten.addEventListener('change', function() {
+            const id = this.options[this.selectedIndex].dataset.id;
+            elKecamatan.innerHTML = '<option value="">Pilih Kecamatan</option>';
+            elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>';
+            elKecamatan.disabled = true; elKelurahan.disabled = true;
+
+            if (id) {
+                fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${id}.json`)
+                .then(res => res.json())
+                .then(data => {
+                    data.sort((a, b) => a.name.localeCompare(b.name));
+                    data.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
+                        elKecamatan.appendChild(opt);
+                    });
+                    elKecamatan.disabled = false;
+                });
+            }
+        });
+
+        elKecamatan.addEventListener('change', function() {
+            const id = this.options[this.selectedIndex].dataset.id;
+            elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>';
+            elKelurahan.disabled = true;
+
+            if (id) {
+                fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${id}.json`)
+                .then(res => res.json())
+                .then(data => {
+                    data.sort((a, b) => a.name.localeCompare(b.name));
+                    data.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
+                        elKelurahan.appendChild(opt);
+                    });
+                    elKelurahan.disabled = false;
+                });
+            }
+        });
+
+        // ----------------------------------------------------
+        // LOGIKA SUBMIT FORM
+        // ----------------------------------------------------
+        document.getElementById('karyawanForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if(elKTP.value.length !== 16) { showToast("Pengisian Gagal! Nomor KTP Wajib 16 Digit.", "error"); elKTP.focus(); return; }
+            if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(elEmail.value) && elEmail.value !== "") { showToast("Format Email Tidak Valid!", "error"); elEmail.focus(); return; }
+
+            // Pengecekan Usia Minimal
+            if (!elTglLahir.value) {
+                 showToast("Isi Tanggal Lahir Anda!", "error"); elTglLahir.focus(); return;
+            } else {
+                 const selectedDate = new Date(elTglLahir.value);
+                 if (selectedDate > dt) {
+                     showToast("Pendaftaran Ditolak: Usia Anda belum mencapai 17 Tahun.", "error"); 
+                     elTglLahir.focus(); return;
+                 }
+            }
+
+            if(document.getElementById('pengalamanGarment').value === 'YA') {
+                if(elLamaTahun && elLamaBulan && elLamaTahun.value === '' && elLamaBulan.value === '') {
+                    errLama.classList.remove('hidden'); showToast("Lengkap data lama bekerja!", "error"); elLamaTahun.focus(); return;
+                }
+            }
+
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            document.getElementById('loadingText').textContent = "Menyimpan Data...";
+            document.getElementById('loadingSubText').textContent = "Mohon tunggu, mengirim data ke server...";
+            loadingOverlay.classList.add('active');
+
+            const fd = new FormData(e.target);
+            const dataObj = Object.fromEntries(fd.entries());
+            dataObj.waktu = new Date().toLocaleString('id-ID');
+
+            // Penggabungan Tahun & Bulan untuk Lama Bekerja
+            if(document.getElementById('pengalamanGarment').value === 'YA') {
+                const thn = elLamaTahun ? elLamaTahun.value : '';
+                const bln = elLamaBulan ? elLamaBulan.value : '';
+                dataObj.lamaBekerja = `${thn ? thn + ' Tahun' : ''} ${bln ? bln + ' Bulan' : ''}`.trim().toUpperCase();
+            } else {
+                dataObj.lamaBekerja = "";
+            }
+
+            dataObj.fotoBase64 = fotoBase64Data;
+            dataObj.fotoName = fotoFileName;
+
+            let textKab = dataObj.kabupaten || ""; textKab = textKab.replace(/^KABUPATEN\s+/i, '');
+            let prefixKab = (dataObj.kabupaten || "").toUpperCase().startsWith('KOTA') ? '' : 'KAB ';
+            dataObj.alamatLengkap = `${dataObj.alamatDesa} RT${dataObj.rt} RW${dataObj.rw} KEL ${dataObj.kelurahan} KEC ${dataObj.kecamatan} ${prefixKab}${textKab}`.toUpperCase();
+
+            try {
+                if (db && auth && auth.currentUser) {
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), {
+                        ...dataObj, timestamp: serverTimestamp()
+                    });
+                } else {
+                    globalEmployees.unshift(dataObj); renderTable();
+                }
+
+                // DENGAN NO-CORS AGAR MASUK KE SPREADSHEET
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST', mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(dataObj)
+                });
+
+                document.getElementById('formContainer').classList.add('hidden');
+                document.getElementById('successMessage').classList.remove('hidden');
+                window.scrollTo(0, 0);
+
+            } catch (err) {
+                showToast('Terjadi kesalahan saat menyimpan data. Coba lagi.', 'error');
+            } finally {
+                document.getElementById('loadingOverlay').classList.remove('active');
+            }
+        });
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            if(globalEmployees.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="37" class="px-6 py-12 text-center text-gray-500">Belum ada data karyawan.</td></tr>`; return;
+            }
+            tbody.innerHTML = globalEmployees.map(emp => `
+                <tr class="hover:bg-blue-50 transition-colors">
+                    <td class="px-4 py-3 text-xs text-gray-500">${emp.waktu || (emp.timestamp ? new Date(emp.timestamp.toDate()).toLocaleString('id-ID') : '-')}</td>
+                    <td class="px-4 py-3 font-medium text-blue-600 underline"><a href="${emp.fotoUrl || '#'}" target="_blank">Lihat Foto</a></td>
+                    <td class="px-4 py-3 font-medium text-gray-900">${emp.namaLengkap || '-'}</td>
+                    <td class="px-4 py-3">${emp.pengalamanGarment || '-'}</td>
+                    <td class="px-4 py-3">${emp.namaPerusahaan || '-'}</td>
+                    <td class="px-4 py-3">${emp.bagian || '-'}</td>
+                    <td class="px-4 py-3 font-medium text-blue-600">${emp.lamaBekerja || '-'}</td>
+                    <td class="px-4 py-3">${emp.jenisKelamin || '-'}</td>
+                    <td class="px-4 py-3">${emp.tempatLahir || '-'}</td>
+                    <td class="px-4 py-3">${emp.tanggalLahir || '-'}</td>
+                    <td class="px-4 py-3">${emp.statusPernikahan || '-'}</td>
+                    <td class="px-4 py-3">${emp.jumlahAnak || '-'}</td>
+                    <td class="px-4 py-3">${emp.agama || '-'}</td>
+                    <td class="px-4 py-3">${emp.alamatEmail || '-'}</td>
+                    <td class="px-4 py-3">${emp.noHandphone || '-'}</td>
+                    <td class="px-4 py-3">${emp.nomorKTP || '-'}</td>
+                    <td class="px-4 py-3">${emp.provinsi || '-'}</td>
+                    <td class="px-4 py-3">${emp.kabupaten || '-'}</td>
+                    <td class="px-4 py-3">${emp.kecamatan || '-'}</td>
+                    <td class="px-4 py-3">${emp.kelurahan || '-'}</td>
+                    <td class="px-4 py-3">${emp.rt || '-'}</td>
+                    <td class="px-4 py-3">${emp.rw || '-'}</td>
+                    <td class="px-4 py-3">${emp.alamatDesa || '-'}</td>
+                    <td class="px-4 py-3">${emp.pendidikanTerakhir || '-'}</td>
+                    <td class="px-4 py-3">${emp.jurusanSekolah || '-'}</td>
+                    <td class="px-4 py-3">${emp.namaIbuKandung || '-'}</td>
+                    <td class="px-4 py-3">${emp.namaAyahKandung || '-'}</td>
+                    <td class="px-4 py-3">${emp.namaSuamiIstri || '-'}</td>
+                    <td class="px-4 py-3">${emp.namaIbuMertua || '-'}</td>
+                    <td class="px-4 py-3">${emp.namaAyahMertua || '-'}</td>
+                    <td class="px-4 py-3">${emp.namaAnak1 || '-'}</td>
+                    <td class="px-4 py-3">${emp.namaAnak2 || '-'}</td>
+                    <td class="px-4 py-3">${emp.namaAnak3 || '-'}</td>
+                    <td class="px-4 py-3">${emp.namaKontakDarurat || '-'}</td>
+                    <td class="px-4 py-3">${emp.noTelpDarurat || '-'}</td>
+                    <td class="px-4 py-3">${emp.hubungan || '-'}</td>
+                    <td class="px-4 py-3">${emp.alamatLengkap || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // ==================================================
+        // REFRESH & RESET
+        // ==================================================
+        document.getElementById('btnResetForm').addEventListener('click', function() {
+            window.location.reload();
+        });
+
+        document.getElementById('btnClearForm').addEventListener('click', function() {
+            if(confirm("Apakah Anda yakin ingin menghapus semua isian data form ini?")) {
+                window.location.reload();
+            }
+        });
+
+        function toggleQR(show) {
+            const modal = document.getElementById('qrModal');
+            if(show) {
+                const url = window.location.href;
+                const qrImage = document.getElementById('qrImage');
+                const qrWarning = document.getElementById('qrWarning');
+
+                if (url.startsWith('file:') || url.startsWith('C:')) {
+                    qrImage.style.display = 'none'; qrWarning.classList.remove('hidden');
+                } else {
+                    qrImage.style.display = 'block'; qrWarning.classList.add('hidden');
+                    qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(url)}`;
+                }
+                modal.classList.remove('hidden'); modal.classList.add('flex');
+            } else {
+                modal.classList.add('hidden'); modal.classList.remove('flex');
+            }
+        }
+
+        document.getElementById('btnShareQR').addEventListener('click', () => toggleQR(true));
+        document.getElementById('btnCloseQR').addEventListener('click', () => toggleQR(false));
+
+        document.getElementById('btnCopyLink').addEventListener('click', function() {
+            const url = window.location.href;
+            const textArea = document.createElement("textarea");
+            textArea.value = url; textArea.style.position = "fixed"; textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.select();
+            try { document.execCommand('copy'); showToast('Link formulir berhasil disalin!', 'success'); } 
+            catch (err) { showToast('Gagal menyalin link.', 'error'); }
+            document.body.removeChild(textArea);
+        });
+
+        document.getElementById('btnExportExcel').addEventListener('click', function() {
+            if(!window.XLSX) { showToast("Pustaka Excel sedang dimuat, coba lagi sebentar.", 'error'); return; }
+            if(globalEmployees.length === 0) { showToast("Belum ada data untuk diekspor.", 'error'); return; }
+
+            const formattedData = globalEmployees.map(emp => ({
+                'Waktu Pengisian': emp.waktu || (emp.timestamp ? new Date(emp.timestamp.toDate()).toLocaleString('id-ID') : '-'),
+                'Foto Karyawan (URL)': emp.fotoUrl || 'Link Foto Dibuat di Spreadsheet Google',
+                'Nama Lengkap': emp.namaLengkap || '',
+                'Pengalaman Garment YA/TIDAK': emp.pengalamanGarment || '',
+                'Nama Perusahaan': emp.namaPerusahaan || '',
+                'BAGIAN': emp.bagian || '', 'LAMA BEKERJA': emp.lamaBekerja || '',
+                'Jenis Kelamin': emp.jenisKelamin || '',
+                'Tempat Lahir': emp.tempatLahir || '', 'Tanggal Lahir': emp.tanggalLahir || '',
+                'Status Pernikahan': emp.statusPernikahan || '',
+                'Jumlah anak': emp.jumlahAnak || '',
+                'Agama': emp.agama || '', 'Alamat Email': emp.alamatEmail || '',
+                'No Handphone Aktif': emp.noHandphone || '', 'Nomor KTP': emp.nomorKTP || '',
+                'Provinsi': emp.provinsi || '', 'Kabupaten': emp.kabupaten || '',
+                'Kecamatan': emp.kecamatan || '', 'Kelurahan': emp.kelurahan || '',
+                'RT': emp.rt || '', 'RW': emp.rw || '', 'Alamat (Desa/Dukuh)': emp.alamatDesa || '',
+                'Pendidikan Terakhir': emp.pendidikanTerakhir || '', 'Jurusan Sekolah': emp.jurusanSekolah || '',
+                'Nama Ibu Kandung': emp.namaIbuKandung || '', 'Nama Ayah Kandung': emp.namaAyahKandung || '',
+                'Nama Suami/Istri': emp.namaSuamiIstri || '', 'Nama Ibu Mertua': emp.namaIbuMertua || '',
+                'Nama Ayah Mertua': emp.namaAyahMertua || '',
+                'Nama Anak Pertama': emp.namaAnak1 || '', 'Nama Anak Kedua': emp.namaAnak2 || '',
+                'Nama Anak Ketiga': emp.namaAnak3 || '',
+                'Nama Kontak Darurat': emp.namaKontakDarurat || '', 'No telp kontak darurat': emp.noTelpDarurat || '',
+                'Hubungan': emp.hubungan || '',
+                'Alamat Lengkap (Gabungan)': emp.alamatLengkap || ''
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(formattedData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Data Karyawan");
+            XLSX.writeFile(workbook, "Database_Karyawan_Baru.xlsx");
+        });
+    </script>
+</body>
+</html>
