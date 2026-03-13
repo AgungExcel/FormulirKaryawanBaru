@@ -17,8 +17,8 @@
     <!-- SheetJS (Export Excel) -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
-    <!-- AI Background Removal -->
-    <script src="https://unpkg.com/@imgly/background-removal@1.4.3/dist/imgly-background-removal.iife.min.js"></script>
+    <!-- AI Background Removal - Menggunakan JSDelivr agar lebih stabil -->
+    <script src="https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.3/dist/imgly-background-removal.iife.min.js"></script>
 
     <style>
         .fade-in { animation: fadeIn 0.5s ease-in-out; }
@@ -338,7 +338,7 @@
 
         <!-- VIEW 2: DATABASE ADMIN -->
         <div id="viewAdmin" class="hidden fade-in bg-white rounded-2xl shadow-xl overflow-hidden w-full mx-auto border border-gray-100 flex-col h-[85vh] my-4">
-            <div class="bg-slate-800 p-4 md:p-6 flex flex-col justify-between items-start gap-4 text-white">
+            <div class="bg-slate-800 p-4 md:p-6 flex flex-col gap-4 text-white">
                 <div class="flex flex-col sm:flex-row justify-between w-full items-start sm:items-center gap-4">
                     <div>
                         <h1 class="text-xl md:text-2xl font-bold flex items-center gap-2">
@@ -355,6 +355,14 @@
                     </div>
                 </div>
 
+                <!-- AREA FILTER TANGGAL (BARU) -->
+                <div class="flex flex-col sm:flex-row items-center gap-3 w-full bg-slate-700/50 p-3 rounded-lg border border-slate-600">
+                    <label class="text-sm font-medium text-slate-200">Filter Tanggal Submit:</label>
+                    <input type="date" id="filterDate" class="px-3 py-1.5 border border-slate-500 bg-slate-800 text-white rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto">
+                    <button id="btnClearFilter" class="px-3 py-1.5 bg-slate-600 text-slate-200 rounded-md text-sm hover:bg-slate-500 transition-colors w-full sm:w-auto">Reset</button>
+                    <span class="text-xs text-slate-300 sm:ml-auto w-full sm:w-auto text-center sm:text-right" id="filterStatus">Menampilkan semua data</span>
+                </div>
+
                 <!-- TOMBOL-TOMBOL ADMIN -->
                 <div class="flex gap-2 flex-wrap w-full">
                     <button id="btnOpenChangePwd" class="flex-1 sm:flex-none px-3 py-2 bg-amber-600 hover:bg-amber-500 rounded-lg flex justify-center items-center gap-2 transition-colors text-xs md:text-sm font-medium shadow-md">
@@ -369,9 +377,9 @@
                     <button id="btnExportExcel" class="flex-1 sm:flex-none px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg flex justify-center items-center gap-2 transition-colors text-xs md:text-sm font-medium shadow-md">
                         <i data-lucide="download" class="w-4 h-4"></i> Export Excel
                     </button>
-                    <!-- TOMBOL DOWNLOAD SEMUA FOTO BARU -->
+                    <!-- TOMBOL DOWNLOAD SEMUA FOTO -->
                     <button id="btnDownloadPhotos" class="flex-1 sm:flex-none px-3 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg flex justify-center items-center gap-2 transition-colors text-xs md:text-sm font-medium shadow-md text-white">
-                        <i data-lucide="images" class="w-4 h-4"></i> Download Semua Foto
+                        <i data-lucide="images" class="w-4 h-4"></i> Download Foto
                     </button>
                 </div>
             </div>
@@ -501,10 +509,11 @@
     </div>
 
     <script>
-        // MENGGUNAKAN LINK DEPLOY ANDA YANG BARU
+        // MENGGUNAKAN LINK DEPLOY ANDA
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfB9VMrfEo7r5Dmz6G7zSx6bMf5KKVgsDotFhWvh1UEeWkcQyQS5YGuhli-XujVfwUig/exec";
 
         let globalEmployees = [];
+        let filteredEmployees = []; // Menyimpan data yang sudah di-filter
 
         lucide.createIcons();
 
@@ -523,8 +532,43 @@
             }
             
             toast.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
+            setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3500);
         };
+
+        // ----------------------------------------------------
+        // FILTER TANGGAL (BARU)
+        // ----------------------------------------------------
+        const filterDateEl = document.getElementById('filterDate');
+        const btnClearFilter = document.getElementById('btnClearFilter');
+        const filterStatus = document.getElementById('filterStatus');
+
+        function applyFilter() {
+            if(!filterDateEl || !filterDateEl.value) {
+                filteredEmployees = [...globalEmployees];
+                if(filterStatus) filterStatus.textContent = `Menampilkan semua data (${filteredEmployees.length})`;
+            } else {
+                const selectedDate = new Date(filterDateEl.value);
+                const d = ('0' + selectedDate.getDate()).slice(-2);
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+                const m = months[selectedDate.getMonth()];
+                const y = selectedDate.getFullYear();
+                
+                // Format tanggal di data kita adalah "DD-MMM-YYYY HH:MM:SS"
+                const targetDateStr = `${d}-${m}-${y}`; 
+                
+                filteredEmployees = globalEmployees.filter(emp => emp.waktu && emp.waktu.startsWith(targetDateStr));
+                if(filterStatus) filterStatus.textContent = `Data tanggal ${targetDateStr} (${filteredEmployees.length})`;
+            }
+            renderTable();
+        }
+
+        if(filterDateEl) filterDateEl.addEventListener('change', applyFilter);
+        if(btnClearFilter) {
+            btnClearFilter.addEventListener('click', () => { 
+                if(filterDateEl) filterDateEl.value = ''; 
+                applyFilter(); 
+            });
+        }
 
         // ----------------------------------------------------
         // SETTING TANGGAL LAHIR MINIMAL 17 TAHUN
@@ -553,7 +597,7 @@
         }
 
         // ----------------------------------------------------
-        // UPLOAD FOTO & AI BACKGROUND REMOVAL (DISEMPURNAKAN)
+        // UPLOAD FOTO & AI BACKGROUND REMOVAL (DISEMPURNAKAN 2.0)
         // ----------------------------------------------------
         let fotoBase64Data = "";
         let fotoFileName = "";
@@ -581,17 +625,17 @@
 
             loadingOverlay.classList.add('active');
             loadingText.textContent = "Memproses Pas Foto...";
-            loadingSubText.textContent = "Menyesuaikan ukuran foto...";
+            loadingSubText.textContent = "Menyesuaikan resolusi agar HP tidak macet...";
 
             try {
-                // TAHAP 1: PRE-COMPRESSION (Lebih kecil agar AI tidak memakan banyak memori HP)
+                // TAHAP 1: PRE-COMPRESSION - Paksa ukuran lebih kecil agar AI HP tidak Crash (Maks lebar 400px)
                 const preCompressedBlob = await new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = function(event) {
                         const img = new Image();
                         img.onload = function() {
                             const canvas = document.createElement('canvas');
-                            const MAX_WIDTH = 600; 
+                            const MAX_WIDTH = 400; // Lebih kecil agar sangat ringan
                             let width = img.width;
                             let height = img.height;
                             
@@ -616,22 +660,20 @@
 
                 // TAHAP 2: PROSES AI HAPUS BACKGROUND
                 let transparentBlob = preCompressedBlob;
-                let bgRemoved = false;
-                loadingSubText.textContent = "Menghapus background... (Butuh koneksi internet stabil)";
+                let isBgRemoved = false;
+                loadingSubText.textContent = "Menghapus background AI... (Pastikan koneksi internet aktif)";
                 
                 try {
-                    if (typeof window.imglyRemoveBackground === 'function' || typeof imglyRemoveBackground === 'function') {
-                        const bgRemovalFn = typeof imglyRemoveBackground === 'function' ? imglyRemoveBackground : window.imglyRemoveBackground;
-                        
-                        transparentBlob = await bgRemovalFn(preCompressedBlob, {
+                    if (typeof window.imglyRemoveBackground === 'function') {
+                        transparentBlob = await window.imglyRemoveBackground(preCompressedBlob, {
+                            // Menggunakan CDN yang direkomendasikan jika lokal gagal
                             publicPath: "https://unpkg.com/@imgly/background-removal@1.4.3/dist/"
                         });
-                        bgRemoved = true;
-                    } else {
-                        console.warn("Library AI belum termuat sempurna");
+                        isBgRemoved = true; // Tandai jika benar-benar sukses melewati baris ini
                     }
                 } catch (aiErr) {
-                    console.error("AI Removal gagal:", aiErr);
+                    console.error("AI Removal gagal (Memori/Koneksi):", aiErr);
+                    // isBgRemoved tetap false
                 }
 
                 // TAHAP 3: TAMBAHKAN WARNA PUTIH & EXPORT
@@ -646,8 +688,11 @@
                         canvas.height = img.height;
                         
                         const ctx = canvas.getContext('2d');
+                        
+                        // Beri alas putih pekat
                         ctx.fillStyle = '#FFFFFF';
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        // Tempel gambar (jika AI gagal, gambar ini masih memiliki background aslinya)
                         ctx.drawImage(img, 0, 0);
                         
                         const finalDataUrl = canvas.toDataURL('image/jpeg', 0.8);
@@ -658,11 +703,11 @@
                         
                         loadingOverlay.classList.remove('active');
                         
-                        // Cek status keberhasilan AI untuk Feedback ke user
-                        if(bgRemoved) {
+                        // Notifikasi yang jujur sesuai hasil
+                        if (isBgRemoved) {
                             showToast("Pas foto background putih berhasil disiapkan!", "success");
                         } else {
-                            showToast("Foto tersimpan (AI gagal menghapus background karena memori HP atau Sinyal).", "error");
+                            showToast("Sistem AI gagal menghapus background. Foto akan dikirim dengan background asli.", "error");
                         }
                     };
                     img.src = event.target.result;
@@ -670,9 +715,9 @@
                 reader2.readAsDataURL(transparentBlob);
 
             } catch (err) {
-                console.error("Proses Foto Error:", err);
+                console.error("Proses Foto Error Keseluruhan:", err);
                 loadingOverlay.classList.remove('active');
-                showToast("Gagal memproses foto. Pastikan wajah Anda terlihat jelas.", "error");
+                showToast("Gagal memproses foto. Pastikan wajah Anda terlihat jelas atau ukuran file tidak terlalu besar.", "error");
                 if(inputFotoKamera) inputFotoKamera.value = ""; 
                 if(inputFotoGaleri) inputFotoGaleri.value = ""; 
             }
@@ -1161,15 +1206,8 @@
                 const fd = new FormData(e.target);
                 const dataObj = Object.fromEntries(fd.entries());
                 
-                const dtNow = new Date();
-                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
-                const dStr = ('0' + dtNow.getDate()).slice(-2);
-                const mStr = months[dtNow.getMonth()];
-                const yStr = dtNow.getFullYear();
-                const hhStr = ('0' + dtNow.getHours()).slice(-2);
-                const mmStr = ('0' + dtNow.getMinutes()).slice(-2);
-                const ssStr = ('0' + dtNow.getSeconds()).slice(-2);
-                dataObj.waktu = `${dStr}-${mStr}-${yStr} ${hhStr}:${mmStr}:${ssStr}`;
+                // Set parameter tidak dikirim
+                dataObj.waktu = ""; 
 
                 if(dataObj.noHandphone) dataObj.noHandphone = "'" + dataObj.noHandphone;
                 if(dataObj.nomorKTP) dataObj.nomorKTP = "'" + dataObj.nomorKTP;
@@ -1193,6 +1231,7 @@
                 dataObj.alamatLengkap = `${dataObj.alamatDesa} RT${dataObj.rt.replace(/'/g,'')} RW${dataObj.rw.replace(/'/g,'')} KEL ${dataObj.kelurahan} KEC ${dataObj.kecamatan} ${prefixKab}${textKab}`.toUpperCase();
 
                 try {
+                    // KIRIM MENGGUNAKAN METODE URLSearchParams (MENCEGAH BLOKIR BROWSER)
                     const formDataParams = new URLSearchParams();
                     formDataParams.append("data", JSON.stringify(dataObj));
 
@@ -1243,7 +1282,7 @@
                 }
                 
                 globalEmployees = data;
-                renderTable();
+                applyFilter(); // Panggil applyFilter agar mengisi filteredEmployees dan renderTable
                 showToast("Data berhasil disinkronisasi dengan Spreadsheet!", "success");
                 
                 if(syncBadge) {
@@ -1268,8 +1307,9 @@
             const tbody = document.getElementById('tableBody');
             if(!tbody) return;
 
-            if(!globalEmployees || globalEmployees.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="37" class="px-6 py-12 text-center text-gray-500">Belum ada data karyawan / Data kosong.</td></tr>`; return;
+            // Menggunakan filteredEmployees, bukan globalEmployees langsung
+            if(!filteredEmployees || filteredEmployees.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="37" class="px-6 py-12 text-center text-gray-500">Belum ada data karyawan / Data kosong pada filter ini.</td></tr>`; return;
             }
 
             const getPreviewUrl = (url) => {
@@ -1282,7 +1322,7 @@
                 return url;
             };
 
-            tbody.innerHTML = globalEmployees.map(emp => {
+            tbody.innerHTML = filteredEmployees.map(emp => {
                 const previewImg = getPreviewUrl(emp.fotoUrl);
                 return `
                 <tr class="hover:bg-blue-50 transition-colors border-b border-gray-100">
@@ -1395,13 +1435,16 @@
             });
         }
 
+        // ----------------------------------------------------
+        // FITUR EXPORT EXCEL BERDASARKAN FILTER
+        // ----------------------------------------------------
         const btnExportExcel = document.getElementById('btnExportExcel');
         if(btnExportExcel) {
             btnExportExcel.addEventListener('click', function() {
                 if(!window.XLSX) { showToast("Pustaka Excel sedang dimuat.", 'error'); return; }
-                if(!globalEmployees || globalEmployees.length === 0) { showToast("Belum ada data untuk di-export.", 'error'); return; }
+                if(!filteredEmployees || filteredEmployees.length === 0) { showToast("Belum ada data untuk di-export pada filter ini.", 'error'); return; }
 
-                const formattedData = globalEmployees.map(emp => ({
+                const formattedData = filteredEmployees.map(emp => ({
                     'Waktu Pengisian': emp.waktu || '', 'Foto Karyawan (URL)': emp.fotoUrl || '',
                     'Nama Lengkap': emp.namaLengkap || '', 'Pengalaman Garment YA/TIDAK': emp.pengalamanGarment || '',
                     'Nama Perusahaan': emp.namaPerusahaan || '', 'BAGIAN': emp.bagian || '', 'LAMA BEKERJA': emp.lamaBekerja || '',
@@ -1433,40 +1476,35 @@
         }
 
         // ----------------------------------------------------
-        // FITUR DOWNLOAD SEMUA FOTO
+        // FITUR DOWNLOAD SEMUA FOTO BERDASARKAN FILTER
         // ----------------------------------------------------
         const btnDownloadPhotos = document.getElementById('btnDownloadPhotos');
         if(btnDownloadPhotos) {
             btnDownloadPhotos.addEventListener('click', async () => {
-                if(!globalEmployees || globalEmployees.length === 0) {
+                if(!filteredEmployees || filteredEmployees.length === 0) {
                     showToast("Tarik (Sync) data dari Spreadsheet terlebih dahulu.", "error"); return;
                 }
-                const withPhotos = globalEmployees.filter(e => e.fotoUrl && e.fotoUrl.includes('/d/'));
+                const withPhotos = filteredEmployees.filter(e => e.fotoUrl && e.fotoUrl.includes('/d/'));
                 if(withPhotos.length === 0) {
-                    showToast("Tidak ada file foto untuk didownload.", "error"); return;
+                    showToast("Tidak ada file foto untuk didownload pada filter ini.", "error"); return;
                 }
                 
-                if(!confirm(`Ditemukan ${withPhotos.length} foto. Buka dan download semua sekarang? (Catatan: Browser mungkin akan meminta izin untuk download file ganda)`)) return;
+                if(!confirm(`Ditemukan ${withPhotos.length} foto pada tanggal ini. \n\nPastikan "Blokir Pop-up" (Pop-up Blocker) di browser Anda mati/diizinkan sebelum lanjut.\n\nLanjut download?`)) return;
 
-                showToast(`Memulai proses download ${withPhotos.length} foto...`, "success");
+                showToast(`Membuka tab download untuk ${withPhotos.length} foto...`, "success");
                 
                 for(let i = 0; i < withPhotos.length; i++) {
                     const emp = withPhotos[i];
                     const match = emp.fotoUrl.match(/\/d\/(.+?)\//);
                     if(match) {
                         const fileId = match[1];
-                        // Link direct download Google Drive, format penamaan akan otomatis diambil dari GDrive sesuai Nama Lengkap Pelamar
                         const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
                         
-                        const a = document.createElement('a');
-                        a.href = downloadUrl;
-                        a.target = '_blank';
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
+                        // Gunakan window.open agar browser mengeksekusinya di tab baru dengan jeda 2 detik
+                        window.open(downloadUrl, '_blank');
                         
-                        // Jeda waktu 1,5 detik per foto agar browser tidak macet / blokir massal
-                        await new Promise(r => setTimeout(r, 1500)); 
+                        // Jeda waktu 2 detik per foto agar browser tidak nge-block massal
+                        await new Promise(r => setTimeout(r, 2000)); 
                     }
                 }
             });
