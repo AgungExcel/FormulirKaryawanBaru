@@ -53,7 +53,7 @@
                 Formulir Isi
             </button>
             <button id="btnViewAdmin" class="flex-1 sm:flex-none px-4 py-1.5 rounded-md text-sm font-medium transition-colors text-gray-500 hover:text-gray-700">
-                Database Admin
+                Admin
             </button>
         </div>
     </nav>
@@ -377,7 +377,7 @@
                     <thead class="bg-slate-100 text-slate-700 sticky top-0 z-10 shadow-sm border-b border-gray-200">
                         <tr>
                             <th class="px-4 py-3 font-semibold">Waktu Submit</th>
-                            <th class="px-4 py-3 font-semibold">Foto Karyawan</th>
+                            <th class="px-4 py-3 font-semibold text-center">Foto Karyawan</th>
                             <th class="px-4 py-3 font-semibold">Nama Lengkap</th>
                             <th class="px-4 py-3 font-semibold">Pengalaman Garment</th>
                             <th class="px-4 py-3 font-semibold">Nama Perusahaan</th>
@@ -563,8 +563,11 @@
             const file = e.target.files[0];
             if(!file) return;
             
-            if (e.target.id === 'inputFotoKamera') inputFotoGaleri.value = "";
-            else inputFotoKamera.value = "";
+            if (e.target.id === 'inputFotoKamera') {
+                if(inputFotoGaleri) inputFotoGaleri.value = "";
+            } else {
+                if(inputFotoKamera) inputFotoKamera.value = "";
+            }
 
             fotoFileName = file.name || "foto.jpg";
             
@@ -634,17 +637,17 @@
                         
                         loadingOverlay.classList.remove('active');
                         showToast("Pas foto background putih berhasil disiapkan!", "success");
-                    }
+                    };
                     img.src = event.target.result;
-                }
+                };
                 reader2.readAsDataURL(transparentBlob);
 
             } catch (err) {
                 console.error("Proses Foto Error:", err);
                 loadingOverlay.classList.remove('active');
                 showToast("Gagal memproses foto. Pastikan wajah Anda terlihat jelas.", "error");
-                inputFotoKamera.value = ""; 
-                inputFotoGaleri.value = ""; 
+                if(inputFotoKamera) inputFotoKamera.value = ""; 
+                if(inputFotoGaleri) inputFotoGaleri.value = ""; 
             }
         }
 
@@ -741,8 +744,14 @@
                 setTimeout(() => el.focus(), 10);
             }
         }
-        if(elRT) { elRT.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); }); elRT.addEventListener('blur', function() { checkRTRW(this); }); }
-        if(elRW) { elRW.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); }); elRW.addEventListener('blur', function() { checkRTRW(this); }); }
+        if(elRT) { 
+            elRT.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); }); 
+            elRT.addEventListener('blur', function() { checkRTRW(this); }); 
+        }
+        if(elRW) { 
+            elRW.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); }); 
+            elRW.addEventListener('blur', function() { checkRTRW(this); }); 
+        }
 
         document.querySelectorAll('input[inputmode="numeric"]:not(#inputKTP):not(#inputRT):not(#inputRW)').forEach(el => {
             el.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); });
@@ -769,18 +778,26 @@
         if(elLamaBulan) elLamaBulan.addEventListener('blur', checkLamaBekerja);
 
         function validasiKontakDarurat() {
-            const namaLengkapVal = elNamaLengkap.value.toLowerCase().trim();
-            const namaDaruratVal = elNamaDarurat.value.toLowerCase().trim();
-            const hpVal = elNoHP.value.trim();
-            const telpDaruratVal = elTelpDarurat.value.trim();
+            const namaLengkapVal = elNamaLengkap ? elNamaLengkap.value.toLowerCase().trim() : '';
+            const namaDaruratVal = elNamaDarurat ? elNamaDarurat.value.toLowerCase().trim() : '';
+            const hpVal = elNoHP ? elNoHP.value.trim() : '';
+            const telpDaruratVal = elTelpDarurat ? elTelpDarurat.value.trim() : '';
 
             if (namaDaruratVal && namaLengkapVal && namaDaruratVal === namaLengkapVal) {
-                errNamaDarurat.classList.remove('hidden'); elNamaDarurat.setCustomValidity("Nama tidak boleh sama!");
-            } else { errNamaDarurat.classList.add('hidden'); elNamaDarurat.setCustomValidity(""); }
+                if(errNamaDarurat) errNamaDarurat.classList.remove('hidden'); 
+                if(elNamaDarurat) elNamaDarurat.setCustomValidity("Nama tidak boleh sama!");
+            } else { 
+                if(errNamaDarurat) errNamaDarurat.classList.add('hidden'); 
+                if(elNamaDarurat) elNamaDarurat.setCustomValidity(""); 
+            }
 
             if (telpDaruratVal && hpVal && telpDaruratVal === hpVal) {
-                errTelpDarurat.classList.remove('hidden'); elTelpDarurat.setCustomValidity("Nomor tidak boleh sama!");
-            } else { errTelpDarurat.classList.add('hidden'); elTelpDarurat.setCustomValidity(""); }
+                if(errTelpDarurat) errTelpDarurat.classList.remove('hidden'); 
+                if(elTelpDarurat) elTelpDarurat.setCustomValidity("Nomor tidak boleh sama!");
+            } else { 
+                if(errTelpDarurat) errTelpDarurat.classList.add('hidden'); 
+                if(elTelpDarurat) elTelpDarurat.setCustomValidity(""); 
+            }
         }
         if(elNamaDarurat) elNamaDarurat.addEventListener('input', validasiKontakDarurat);
         if(elTelpDarurat) elTelpDarurat.addEventListener('input', validasiKontakDarurat);
@@ -805,11 +822,15 @@
         };
 
         function resetStatusAnak() {
-            elAnak.innerHTML = '<option value="">Pilih Jumlah Anak</option>';
-            pasanganContainer.classList.add('hidden');
-            anakContainer.classList.add('hidden');
-            pasanganContainer.querySelectorAll('input').forEach(el => el.required = false);
-            anakContainer.querySelectorAll('input').forEach(el => el.required = false);
+            if(elAnak) elAnak.innerHTML = '<option value="">Pilih Jumlah Anak</option>';
+            if(pasanganContainer) {
+                pasanganContainer.classList.add('hidden');
+                pasanganContainer.querySelectorAll('input').forEach(el => el.required = false);
+            }
+            if(anakContainer) {
+                anakContainer.classList.add('hidden');
+                anakContainer.querySelectorAll('input').forEach(el => el.required = false);
+            }
         }
 
         if(elStatus) {
@@ -821,17 +842,21 @@
                     opsiAnak[status].forEach(opt => {
                         const o = document.createElement('option');
                         o.value = opt.val; o.textContent = opt.text;
-                        elAnak.appendChild(o);
+                        if(elAnak) elAnak.appendChild(o);
                     });
-                    elAnak.disabled = false;
-                    elAnak.classList.remove('bg-gray-100'); elAnak.classList.add('bg-white');
+                    if(elAnak) {
+                        elAnak.disabled = false;
+                        elAnak.classList.remove('bg-gray-100'); elAnak.classList.add('bg-white');
+                    }
                 } else {
-                    elAnak.disabled = true;
-                    elAnak.classList.remove('bg-white'); elAnak.classList.add('bg-gray-100');
-                    elAnak.innerHTML = '<option value="">Pilih Status Dahulu</option>';
+                    if(elAnak) {
+                        elAnak.disabled = true;
+                        elAnak.classList.remove('bg-white'); elAnak.classList.add('bg-gray-100');
+                        elAnak.innerHTML = '<option value="">Pilih Status Dahulu</option>';
+                    }
                 }
 
-                if (status === 'MARRIED') {
+                if (status === 'MARRIED' && pasanganContainer) {
                     pasanganContainer.classList.remove('hidden');
                     document.getElementById('inputSuamiIstri').required = true;
                     document.getElementById('inputIbuMertua').required = true;
@@ -844,17 +869,22 @@
             elAnak.addEventListener('change', function() {
                 const val = this.value;
                 if (val === 'K0' || val === 'TK0' || val === '') {
-                    anakContainer.classList.add('hidden');
-                    anakContainer.querySelectorAll('input').forEach(el => el.required = false);
+                    if(anakContainer) {
+                        anakContainer.classList.add('hidden');
+                        anakContainer.querySelectorAll('input').forEach(el => el.required = false);
+                    }
                 } else {
-                    anakContainer.classList.remove('hidden');
-                    document.getElementById('inputAnak1').required = true;
+                    if(anakContainer) {
+                        anakContainer.classList.remove('hidden');
+                        document.getElementById('inputAnak1').required = true;
+                    }
                 }
             });
         }
 
         document.getElementById('pengalamanGarment').addEventListener('change', function() {
             const fields = document.getElementById('pengalamanFields');
+            if(!fields) return;
             
             if (this.value === 'YA') {
                 fields.classList.remove('hidden');
@@ -885,58 +915,99 @@
         const authForm = document.getElementById('authForm');
         const authPasswordInput = document.getElementById('authPassword');
 
-        btnViewForm.addEventListener('click', () => {
-            viewForm.style.display = 'block'; viewAdmin.style.display = 'none';
-            btnViewForm.classList.add('bg-white', 'shadow-sm', 'text-blue-600'); btnViewForm.classList.remove('text-gray-500');
-            btnViewAdmin.classList.remove('bg-white', 'shadow-sm', 'text-blue-600'); btnViewAdmin.classList.add('text-gray-500');
-        });
+        if(btnViewForm && btnViewAdmin) {
+            btnViewForm.addEventListener('click', () => {
+                if(viewForm) viewForm.style.display = 'block'; 
+                if(viewAdmin) viewAdmin.style.display = 'none';
+                btnViewForm.classList.add('bg-white', 'shadow-sm', 'text-blue-600'); btnViewForm.classList.remove('text-gray-500');
+                btnViewAdmin.classList.remove('bg-white', 'shadow-sm', 'text-blue-600'); btnViewAdmin.classList.add('text-gray-500');
+            });
 
-        btnViewAdmin.addEventListener('click', () => {
-            if (viewAdmin.style.display === 'flex') return; 
-            authModal.classList.remove('hidden'); authModal.classList.add('flex');
-            authPasswordInput.focus();
-        });
+            btnViewAdmin.addEventListener('click', () => {
+                if (viewAdmin && viewAdmin.style.display === 'flex') return; 
+                if(authModal) {
+                    authModal.classList.remove('hidden'); authModal.classList.add('flex');
+                    if(authPasswordInput) authPasswordInput.focus();
+                }
+            });
+        }
 
-        document.getElementById('btnCloseAuth').addEventListener('click', () => {
-            authModal.classList.add('hidden'); authModal.classList.remove('flex');
-            authPasswordInput.value = '';
-        });
+        const btnCloseAuth = document.getElementById('btnCloseAuth');
+        if(btnCloseAuth) {
+            btnCloseAuth.addEventListener('click', () => {
+                if(authModal) {
+                    authModal.classList.add('hidden'); authModal.classList.remove('flex');
+                }
+                if(authPasswordInput) authPasswordInput.value = '';
+            });
+        }
 
-        authForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (authPasswordInput.value === getAdminPassword()) {
-                authModal.classList.add('hidden'); authModal.classList.remove('flex');
-                authPasswordInput.value = '';
-                viewForm.style.display = 'none'; viewAdmin.style.display = 'flex';
-                btnViewAdmin.classList.add('bg-white', 'shadow-sm', 'text-blue-600'); btnViewAdmin.classList.remove('text-gray-500');
-                btnViewForm.classList.remove('bg-white', 'shadow-sm', 'text-blue-600'); btnViewForm.classList.add('text-gray-500');
-                
-                // OTOMATIS SINKRONISASI SAAT MASUK KE MENU ADMIN
-                fetchSpreadsheetData();
-            } else {
-                showToast('Password yang Anda masukkan salah!', 'error');
-            }
-        });
+        if(authForm) {
+            authForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (authPasswordInput && authPasswordInput.value === getAdminPassword()) {
+                    if(authModal) {
+                        authModal.classList.add('hidden'); authModal.classList.remove('flex');
+                    }
+                    authPasswordInput.value = '';
+                    if(viewForm) viewForm.style.display = 'none'; 
+                    if(viewAdmin) viewAdmin.style.display = 'flex';
+                    if(btnViewAdmin) {
+                        btnViewAdmin.classList.add('bg-white', 'shadow-sm', 'text-blue-600'); btnViewAdmin.classList.remove('text-gray-500');
+                    }
+                    if(btnViewForm) {
+                        btnViewForm.classList.remove('bg-white', 'shadow-sm', 'text-blue-600'); btnViewForm.classList.add('text-gray-500');
+                    }
+                    
+                    // OTOMATIS SINKRONISASI SAAT MASUK KE MENU ADMIN
+                    fetchSpreadsheetData();
+                } else {
+                    showToast('Password yang Anda masukkan salah!', 'error');
+                }
+            });
+        }
 
         const changePwdModal = document.getElementById('changePwdModal');
         const changePwdForm = document.getElementById('changePwdForm');
-        document.getElementById('btnOpenChangePwd').addEventListener('click', () => {
-            changePwdModal.classList.remove('hidden'); changePwdModal.classList.add('flex');
-            document.getElementById('oldPwd').value = ''; document.getElementById('newPwd').value = '';
-            document.getElementById('oldPwd').focus();
-        });
-        document.getElementById('btnCloseChangePwd').addEventListener('click', () => { changePwdModal.classList.add('hidden'); changePwdModal.classList.remove('flex'); });
+        const btnOpenChangePwd = document.getElementById('btnOpenChangePwd');
+        
+        if(btnOpenChangePwd) {
+            btnOpenChangePwd.addEventListener('click', () => {
+                if(changePwdModal) {
+                    changePwdModal.classList.remove('hidden'); changePwdModal.classList.add('flex');
+                }
+                const oldPwd = document.getElementById('oldPwd');
+                if(oldPwd) { oldPwd.value = ''; oldPwd.focus(); }
+                const newPwd = document.getElementById('newPwd');
+                if(newPwd) { newPwd.value = ''; }
+            });
+        }
+        
+        const btnCloseChangePwd = document.getElementById('btnCloseChangePwd');
+        if(btnCloseChangePwd) {
+            btnCloseChangePwd.addEventListener('click', () => { 
+                if(changePwdModal) {
+                    changePwdModal.classList.add('hidden'); changePwdModal.classList.remove('flex'); 
+                }
+            });
+        }
 
-        changePwdForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const oldPwdInput = document.getElementById('oldPwd').value;
-            const newPwdInput = document.getElementById('newPwd').value;
-            if (oldPwdInput !== getAdminPassword()) { showToast('Password Lama salah!', 'error'); return; }
-            if (newPwdInput.trim() === "") { showToast('Password Baru kosong!', 'error'); return; }
-            setAdminPassword(newPwdInput);
-            showToast('Password Admin berhasil diubah!', 'success');
-            changePwdModal.classList.add('hidden'); changePwdModal.classList.remove('flex');
-        });
+        if(changePwdForm) {
+            changePwdForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const oldPwdInput = document.getElementById('oldPwd');
+                const newPwdInput = document.getElementById('newPwd');
+                
+                if (oldPwdInput && oldPwdInput.value !== getAdminPassword()) { showToast('Password Lama salah!', 'error'); return; }
+                if (newPwdInput && newPwdInput.value.trim() === "") { showToast('Password Baru kosong!', 'error'); return; }
+                
+                if(newPwdInput) setAdminPassword(newPwdInput.value);
+                showToast('Password Admin berhasil diubah!', 'success');
+                if(changePwdModal) {
+                    changePwdModal.classList.add('hidden'); changePwdModal.classList.remove('flex');
+                }
+            });
+        }
 
         // ----------------------------------------------------
         // API WILAYAH (EMSIFA)
@@ -953,148 +1024,177 @@
                 data.forEach(p => {
                     const opt = document.createElement('option');
                     opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
-                    elProvinsi.appendChild(opt);
+                    if(elProvinsi) elProvinsi.appendChild(opt);
                 });
             });
 
-        elProvinsi.addEventListener('change', function() {
-            const id = this.options[this.selectedIndex].dataset.id;
-            elKabupaten.innerHTML = '<option value="">Pilih Kabupaten</option>';
-            elKecamatan.innerHTML = '<option value="">Pilih Kecamatan</option>';
-            elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>';
-            elKabupaten.disabled = true; elKecamatan.disabled = true; elKelurahan.disabled = true;
+        if(elProvinsi) {
+            elProvinsi.addEventListener('change', function() {
+                const id = this.options[this.selectedIndex].dataset.id;
+                if(elKabupaten) { elKabupaten.innerHTML = '<option value="">Pilih Kabupaten</option>'; elKabupaten.disabled = true; }
+                if(elKecamatan) { elKecamatan.innerHTML = '<option value="">Pilih Kecamatan</option>'; elKecamatan.disabled = true; }
+                if(elKelurahan) { elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>'; elKelurahan.disabled = true; }
 
-            if (id) {
-                fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${id}.json`)
-                .then(res => res.json())
-                .then(data => {
-                    data.sort((a, b) => a.name.localeCompare(b.name));
-                    data.forEach(p => {
-                        const opt = document.createElement('option');
-                        opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
-                        elKabupaten.appendChild(opt);
+                if (id && elKabupaten) {
+                    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${id}.json`)
+                    .then(res => res.json())
+                    .then(data => {
+                        data.sort((a, b) => a.name.localeCompare(b.name));
+                        data.forEach(p => {
+                            const opt = document.createElement('option');
+                            opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
+                            elKabupaten.appendChild(opt);
+                        });
+                        elKabupaten.disabled = false;
                     });
-                    elKabupaten.disabled = false;
-                });
-            }
-        });
+                }
+            });
+        }
 
-        elKabupaten.addEventListener('change', function() {
-            const id = this.options[this.selectedIndex].dataset.id;
-            elKecamatan.innerHTML = '<option value="">Pilih Kecamatan</option>';
-            elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>';
-            elKecamatan.disabled = true; elKelurahan.disabled = true;
+        if(elKabupaten) {
+            elKabupaten.addEventListener('change', function() {
+                const id = this.options[this.selectedIndex].dataset.id;
+                if(elKecamatan) { elKecamatan.innerHTML = '<option value="">Pilih Kecamatan</option>'; elKecamatan.disabled = true; }
+                if(elKelurahan) { elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>'; elKelurahan.disabled = true; }
 
-            if (id) {
-                fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${id}.json`)
-                .then(res => res.json())
-                .then(data => {
-                    data.sort((a, b) => a.name.localeCompare(b.name));
-                    data.forEach(p => {
-                        const opt = document.createElement('option');
-                        opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
-                        elKecamatan.appendChild(opt);
+                if (id && elKecamatan) {
+                    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${id}.json`)
+                    .then(res => res.json())
+                    .then(data => {
+                        data.sort((a, b) => a.name.localeCompare(b.name));
+                        data.forEach(p => {
+                            const opt = document.createElement('option');
+                            opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
+                            elKecamatan.appendChild(opt);
+                        });
+                        elKecamatan.disabled = false;
                     });
-                    elKecamatan.disabled = false;
-                });
-            }
-        });
+                }
+            });
+        }
 
-        elKecamatan.addEventListener('change', function() {
-            const id = this.options[this.selectedIndex].dataset.id;
-            elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>';
-            elKelurahan.disabled = true;
+        if(elKecamatan) {
+            elKecamatan.addEventListener('change', function() {
+                const id = this.options[this.selectedIndex].dataset.id;
+                if(elKelurahan) { elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>'; elKelurahan.disabled = true; }
 
-            if (id) {
-                fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${id}.json`)
-                .then(res => res.json())
-                .then(data => {
-                    data.sort((a, b) => a.name.localeCompare(b.name));
-                    data.forEach(p => {
-                        const opt = document.createElement('option');
-                        opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
-                        elKelurahan.appendChild(opt);
+                if (id && elKelurahan) {
+                    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${id}.json`)
+                    .then(res => res.json())
+                    .then(data => {
+                        data.sort((a, b) => a.name.localeCompare(b.name));
+                        data.forEach(p => {
+                            const opt = document.createElement('option');
+                            opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
+                            elKelurahan.appendChild(opt);
+                        });
+                        elKelurahan.disabled = false;
                     });
-                    elKelurahan.disabled = false;
-                });
-            }
-        });
+                }
+            });
+        }
 
         // ----------------------------------------------------
         // LOGIKA SUBMIT FORM (MENGIRIM DATA KE SPREADSHEET)
         // ----------------------------------------------------
-        document.getElementById('karyawanForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        const formEl = document.getElementById('karyawanForm');
+        if(formEl) {
+            formEl.addEventListener('submit', async function(e) {
+                e.preventDefault();
 
-            if(elKTP.value.length !== 16) { showToast("Pengisian Gagal! Nomor KTP Wajib 16 Digit.", "error"); elKTP.focus(); return; }
-            if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(elEmail.value) && elEmail.value !== "") { showToast("Format Email Tidak Valid!", "error"); elEmail.focus(); return; }
+                if(elKTP && elKTP.value.length !== 16) { showToast("Pengisian Gagal! Nomor KTP Wajib 16 Digit.", "error"); elKTP.focus(); return; }
+                if(elEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(elEmail.value) && elEmail.value !== "") { showToast("Format Email Tidak Valid!", "error"); elEmail.focus(); return; }
 
-            if (!elTglLahir.value) {
-                 showToast("Isi Tanggal Lahir Anda!", "error"); elTglLahir.focus(); return;
-            } else {
-                 const selectedDate = new Date(elTglLahir.value);
-                 if (selectedDate > dt) {
-                     showToast("Pendaftaran Ditolak: Usia Anda belum mencapai 17 Tahun.", "error"); 
-                     elTglLahir.focus(); return;
-                 }
-            }
-
-            if(document.getElementById('pengalamanGarment').value === 'YA') {
-                if(elLamaTahun && elLamaBulan && elLamaTahun.value === '' && elLamaBulan.value === '') {
-                    errLama.classList.remove('hidden'); showToast("Lengkap data lama bekerja!", "error"); elLamaTahun.focus(); return;
+                if (elTglLahir && !elTglLahir.value) {
+                     showToast("Isi Tanggal Lahir Anda!", "error"); elTglLahir.focus(); return;
+                } else if(elTglLahir) {
+                     const selectedDate = new Date(elTglLahir.value);
+                     if (selectedDate > dt) {
+                         showToast("Pendaftaran Ditolak: Usia Anda belum mencapai 17 Tahun.", "error"); 
+                         elTglLahir.focus(); return;
+                     }
                 }
-            }
 
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            document.getElementById('loadingText').textContent = "Menyimpan Data...";
-            document.getElementById('loadingSubText').textContent = "Mengirim data ke Spreadsheet. Mohon tunggu...";
-            loadingOverlay.classList.add('active');
+                const garmentEl = document.getElementById('pengalamanGarment');
+                if(garmentEl && garmentEl.value === 'YA') {
+                    if(elLamaTahun && elLamaBulan && elLamaTahun.value === '' && elLamaBulan.value === '') {
+                        if(errLama) errLama.classList.remove('hidden'); showToast("Lengkap data lama bekerja!", "error"); elLamaTahun.focus(); return;
+                    }
+                }
 
-            const fd = new FormData(e.target);
-            const dataObj = Object.fromEntries(fd.entries());
-            dataObj.waktu = new Date().toLocaleString('id-ID');
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                if(loadingOverlay) {
+                    const loadingText = document.getElementById('loadingText');
+                    const loadingSubText = document.getElementById('loadingSubText');
+                    if(loadingText) loadingText.textContent = "Menyimpan Data...";
+                    if(loadingSubText) loadingSubText.textContent = "Mengirim data ke Spreadsheet. Mohon tunggu...";
+                    loadingOverlay.classList.add('active');
+                }
 
-            if(document.getElementById('pengalamanGarment').value === 'YA') {
-                const thn = elLamaTahun ? elLamaTahun.value : '';
-                const bln = elLamaBulan ? elLamaBulan.value : '';
-                dataObj.lamaBekerja = `${thn ? thn + ' Tahun' : ''} ${bln ? bln + ' Bulan' : ''}`.trim().toUpperCase();
-            } else {
-                dataObj.lamaBekerja = "";
-            }
-
-            dataObj.fotoBase64 = fotoBase64Data;
-            dataObj.fotoName = fotoFileName;
-
-            let textKab = dataObj.kabupaten || ""; textKab = textKab.replace(/^KABUPATEN\s+/i, '');
-            let prefixKab = (dataObj.kabupaten || "").toUpperCase().startsWith('KOTA') ? '' : 'KAB ';
-            dataObj.alamatLengkap = `${dataObj.alamatDesa} RT${dataObj.rt} RW${dataObj.rw} KEL ${dataObj.kelurahan} KEC ${dataObj.kecamatan} ${prefixKab}${textKab}`.toUpperCase();
-
-            try {
-                // KIRIM MENGGUNAKAN METODE URLSearchParams (MENCEGAH BLOKIR BROWSER)
-                const formDataParams = new URLSearchParams();
-                formDataParams.append("data", JSON.stringify(dataObj));
-
-                await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST', 
-                    body: formDataParams
-                });
+                const fd = new FormData(e.target);
+                const dataObj = Object.fromEntries(fd.entries());
                 
-                loadingOverlay.classList.remove('active');
-                document.getElementById('formContainer').classList.add('hidden');
-                document.getElementById('successMessage').classList.remove('hidden');
-                window.scrollTo(0, 0);
-                
-                // Ubah status lencana jika ada yang submit baru (perlu ditarik)
-                const syncBadge = document.getElementById('syncBadge');
-                syncBadge.className = "text-xs font-semibold px-3 py-1.5 rounded-md bg-red-100 text-red-700 border border-red-200 flex items-center gap-1.5 transition-colors";
-                syncBadge.innerHTML = `<i data-lucide="x-circle" class="w-4 h-4"></i> Data Baru! Perlu Sync`;
-                lucide.createIcons();
+                const dtNow = new Date();
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+                const dStr = ('0' + dtNow.getDate()).slice(-2);
+                const mStr = months[dtNow.getMonth()];
+                const yStr = dtNow.getFullYear();
+                const hhStr = ('0' + dtNow.getHours()).slice(-2);
+                const mmStr = ('0' + dtNow.getMinutes()).slice(-2);
+                const ssStr = ('0' + dtNow.getSeconds()).slice(-2);
+                dataObj.waktu = `${dStr}-${mStr}-${yStr} ${hhStr}:${mmStr}:${ssStr}`;
 
-            } catch (err) {
-                loadingOverlay.classList.remove('active');
-                showToast('Gagal mengirim data. Periksa jaringan Anda.', 'error');
-            }
-        });
+                if(dataObj.noHandphone) dataObj.noHandphone = "'" + dataObj.noHandphone;
+                if(dataObj.nomorKTP) dataObj.nomorKTP = "'" + dataObj.nomorKTP;
+                if(dataObj.rt) dataObj.rt = "'" + dataObj.rt;
+                if(dataObj.rw) dataObj.rw = "'" + dataObj.rw;
+                if(dataObj.noTelpDarurat) dataObj.noTelpDarurat = "'" + dataObj.noTelpDarurat;
+
+                if(garmentEl && garmentEl.value === 'YA') {
+                    const thn = elLamaTahun ? elLamaTahun.value : '';
+                    const bln = elLamaBulan ? elLamaBulan.value : '';
+                    dataObj.lamaBekerja = `${thn ? thn + ' Tahun' : ''} ${bln ? bln + ' Bulan' : ''}`.trim().toUpperCase();
+                } else {
+                    dataObj.lamaBekerja = "";
+                }
+
+                dataObj.fotoBase64 = fotoBase64Data;
+                dataObj.fotoName = fotoFileName;
+
+                let textKab = dataObj.kabupaten || ""; textKab = textKab.replace(/^KABUPATEN\s+/i, '');
+                let prefixKab = (dataObj.kabupaten || "").toUpperCase().startsWith('KOTA') ? '' : 'KAB ';
+                dataObj.alamatLengkap = `${dataObj.alamatDesa} RT${dataObj.rt.replace(/'/g,'')} RW${dataObj.rw.replace(/'/g,'')} KEL ${dataObj.kelurahan} KEC ${dataObj.kecamatan} ${prefixKab}${textKab}`.toUpperCase();
+
+                try {
+                    const formDataParams = new URLSearchParams();
+                    formDataParams.append("data", JSON.stringify(dataObj));
+
+                    await fetch(GOOGLE_SCRIPT_URL, {
+                        method: 'POST', 
+                        body: formDataParams
+                    });
+                    
+                    if(loadingOverlay) loadingOverlay.classList.remove('active');
+                    
+                    const formContainer = document.getElementById('formContainer');
+                    const successMessage = document.getElementById('successMessage');
+                    if(formContainer) formContainer.classList.add('hidden');
+                    if(successMessage) successMessage.classList.remove('hidden');
+                    window.scrollTo(0, 0);
+                    
+                    const syncBadge = document.getElementById('syncBadge');
+                    if(syncBadge) {
+                        syncBadge.className = "text-xs font-semibold px-3 py-1.5 rounded-md bg-red-100 text-red-700 border border-red-200 flex items-center gap-1.5 transition-colors";
+                        syncBadge.innerHTML = `<i data-lucide="x-circle" class="w-4 h-4"></i> Data Baru! Perlu Sync`;
+                        lucide.createIcons();
+                    }
+
+                } catch (err) {
+                    if(loadingOverlay) loadingOverlay.classList.remove('active');
+                    showToast('Gagal mengirim data. Periksa jaringan Anda.', 'error');
+                }
+            });
+        }
 
         // ----------------------------------------------------
         // MENARIK DATA DARI SPREADSHEET (MEMBERIKAN TANDA WARNA)
@@ -1103,7 +1203,7 @@
             const tbody = document.getElementById('tableBody');
             const syncBadge = document.getElementById('syncBadge');
             
-            tbody.innerHTML = '<tr><td colspan="37" class="px-6 py-12 text-center text-blue-600"><div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mx-auto mb-2"></div>Menarik data dari Spreadsheet... Mohon tunggu.</td></tr>';
+            if(tbody) tbody.innerHTML = '<tr><td colspan="37" class="px-6 py-12 text-center text-blue-600"><div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mx-auto mb-2"></div>Menarik data dari Spreadsheet... Mohon tunggu.</td></tr>';
             
             try {
                 const response = await fetch(GOOGLE_SCRIPT_URL);
@@ -1111,7 +1211,7 @@
                 
                 if(data.error) {
                     showToast("Error membaca Spreadsheet: " + data.error, "error");
-                    tbody.innerHTML = '<tr><td colspan="37" class="px-6 py-12 text-center text-red-500">Gagal memuat. Pastikan pengaturan Deploy Google Script disetel ke "Siapa saja" (Anyone).</td></tr>';
+                    if(tbody) tbody.innerHTML = '<tr><td colspan="37" class="px-6 py-12 text-center text-red-500">Gagal memuat. Pastikan pengaturan Deploy Google Script disetel ke "Siapa saja" (Anyone).</td></tr>';
                     return;
                 }
                 
@@ -1119,31 +1219,53 @@
                 renderTable();
                 showToast("Data berhasil disinkronisasi dengan Spreadsheet!", "success");
                 
-                // UBAH BADGE JADI WARNA HIJAU JIKA SUKSES
-                syncBadge.className = "text-xs font-semibold px-3 py-1.5 rounded-md bg-green-100 text-green-700 border border-green-200 flex items-center gap-1.5 transition-colors fade-in";
-                const now = new Date();
-                const timeString = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
-                syncBadge.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4"></i> Sinkron: ${timeString}`;
-                lucide.createIcons();
+                if(syncBadge) {
+                    syncBadge.className = "text-xs font-semibold px-3 py-1.5 rounded-md bg-green-100 text-green-700 border border-green-200 flex items-center gap-1.5 transition-colors fade-in";
+                    const now = new Date();
+                    const timeString = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
+                    syncBadge.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4"></i> Sinkron: ${timeString}`;
+                    lucide.createIcons();
+                }
 
             } catch(e) {
                 console.error(e);
                 showToast("Gagal mengambil data dari Google Sheet.", "error");
-                tbody.innerHTML = '<tr><td colspan="37" class="px-6 py-12 text-center text-red-500">Gagal terhubung ke Spreadsheet. Periksa koneksi internet Anda.</td></tr>';
+                if(tbody) tbody.innerHTML = '<tr><td colspan="37" class="px-6 py-12 text-center text-red-500">Gagal terhubung ke Spreadsheet. Periksa koneksi internet Anda.</td></tr>';
             }
         }
 
-        document.getElementById('btnSyncSheet').addEventListener('click', fetchSpreadsheetData);
+        const btnSyncSheet = document.getElementById('btnSyncSheet');
+        if(btnSyncSheet) btnSyncSheet.addEventListener('click', fetchSpreadsheetData);
 
         function renderTable() {
             const tbody = document.getElementById('tableBody');
+            if(!tbody) return;
+
             if(!globalEmployees || globalEmployees.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="37" class="px-6 py-12 text-center text-gray-500">Belum ada data karyawan / Data kosong.</td></tr>`; return;
             }
-            tbody.innerHTML = globalEmployees.map(emp => `
+
+            const getPreviewUrl = (url) => {
+                if (!url) return '';
+                const match = url.match(/\/d\/(.+?)\//);
+                if (match && match[1]) {
+                    return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+                }
+                return url;
+            };
+
+            tbody.innerHTML = globalEmployees.map(emp => {
+                const previewImg = getPreviewUrl(emp.fotoUrl);
+                return `
                 <tr class="hover:bg-blue-50 transition-colors border-b border-gray-100">
                     <td class="px-4 py-3 text-xs text-gray-500">${emp.waktu || '-'}</td>
-                    <td class="px-4 py-3 font-medium text-blue-600 underline">${emp.fotoUrl && emp.fotoUrl.startsWith('http') ? `<a href="${emp.fotoUrl}" target="_blank">Lihat Foto</a>` : '-'}</td>
+                    <td class="px-4 py-3 font-medium text-center">
+                        ${emp.fotoUrl && emp.fotoUrl.startsWith('http') 
+                            ? `<a href="${emp.fotoUrl}" target="_blank" title="Klik untuk ukuran penuh">
+                                 <img src="${previewImg}" alt="Foto" class="w-10 h-14 sm:w-12 sm:h-16 object-cover rounded border border-gray-300 shadow-sm mx-auto hover:opacity-80 transition-opacity" onerror="this.onerror=null; this.outerHTML='<a href=\\'${emp.fotoUrl}\\' target=\\'_blank\\' class=\\'text-blue-600 underline\\'>Lihat Foto</a>';">
+                               </a>` 
+                            : '<span class="text-gray-400 text-xs">-</span>'}
+                    </td>
                     <td class="px-4 py-3 font-medium text-gray-900">${emp.namaLengkap || '-'}</td>
                     <td class="px-4 py-3">${emp.pengalamanGarment || '-'}</td>
                     <td class="px-4 py-3">${emp.namaPerusahaan || '-'}</td>
@@ -1180,31 +1302,44 @@
                     <td class="px-4 py-3">${emp.hubungan || '-'}</td>
                     <td class="px-4 py-3">${emp.alamatLengkap || '-'}</td>
                 </tr>
-            `).join('');
+            `;
+            }).join('');
         }
 
-        document.getElementById('btnResetForm').addEventListener('click', function() {
-            window.location.reload();
-        });
-
-        document.getElementById('btnClearForm').addEventListener('click', function() {
-            if(confirm("Apakah Anda yakin ingin menghapus semua isian data form ini?")) {
+        const btnResetForm = document.getElementById('btnResetForm');
+        if(btnResetForm) {
+            btnResetForm.addEventListener('click', function() {
                 window.location.reload();
-            }
-        });
+            });
+        }
+
+        const btnClearForm = document.getElementById('btnClearForm');
+        if(btnClearForm) {
+            btnClearForm.addEventListener('click', function() {
+                if(confirm("Apakah Anda yakin ingin menghapus semua isian data form ini?")) {
+                    window.location.reload();
+                }
+            });
+        }
 
         function toggleQR(show) {
             const modal = document.getElementById('qrModal');
+            if(!modal) return;
+            
             if(show) {
                 const url = window.location.href;
                 const qrImage = document.getElementById('qrImage');
                 const qrWarning = document.getElementById('qrWarning');
 
                 if (url.startsWith('file:') || url.startsWith('C:')) {
-                    qrImage.style.display = 'none'; qrWarning.classList.remove('hidden');
+                    if(qrImage) qrImage.style.display = 'none'; 
+                    if(qrWarning) qrWarning.classList.remove('hidden');
                 } else {
-                    qrImage.style.display = 'block'; qrWarning.classList.add('hidden');
-                    qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(url)}`;
+                    if(qrImage) {
+                        qrImage.style.display = 'block'; 
+                        qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(url)}`;
+                    }
+                    if(qrWarning) qrWarning.classList.add('hidden');
                 }
                 modal.classList.remove('hidden'); modal.classList.add('flex');
             } else {
@@ -1212,47 +1347,62 @@
             }
         }
 
-        document.getElementById('btnShareQR').addEventListener('click', () => toggleQR(true));
-        document.getElementById('btnCloseQR').addEventListener('click', () => toggleQR(false));
+        const btnShareQR = document.getElementById('btnShareQR');
+        if(btnShareQR) btnShareQR.addEventListener('click', () => toggleQR(true));
+        
+        const btnCloseQR = document.getElementById('btnCloseQR');
+        if(btnCloseQR) btnCloseQR.addEventListener('click', () => toggleQR(false));
 
-        document.getElementById('btnCopyLink').addEventListener('click', function() {
-            const url = window.location.href;
-            const textArea = document.createElement("textarea");
-            textArea.value = url; textArea.style.position = "fixed"; textArea.style.left = "-9999px";
-            document.body.appendChild(textArea);
-            textArea.select();
-            try { document.execCommand('copy'); showToast('Link formulir berhasil disalin!', 'success'); } 
-            catch (err) { showToast('Gagal menyalin link.', 'error'); }
-            document.body.removeChild(textArea);
-        });
+        const btnCopyLink = document.getElementById('btnCopyLink');
+        if(btnCopyLink) {
+            btnCopyLink.addEventListener('click', function() {
+                const url = window.location.href;
+                const textArea = document.createElement("textarea");
+                textArea.value = url; textArea.style.position = "fixed"; textArea.style.left = "-9999px";
+                document.body.appendChild(textArea);
+                textArea.select();
+                try { document.execCommand('copy'); showToast('Link formulir berhasil disalin!', 'success'); } 
+                catch (err) { showToast('Gagal menyalin link.', 'error'); }
+                document.body.removeChild(textArea);
+            });
+        }
 
-        document.getElementById('btnExportExcel').addEventListener('click', function() {
-            if(!window.XLSX) { showToast("Pustaka Excel sedang dimuat.", 'error'); return; }
-            if(globalEmployees.length === 0) { showToast("Belum ada data.", 'error'); return; }
+        const btnExportExcel = document.getElementById('btnExportExcel');
+        if(btnExportExcel) {
+            btnExportExcel.addEventListener('click', function() {
+                if(!window.XLSX) { showToast("Pustaka Excel sedang dimuat.", 'error'); return; }
+                if(!globalEmployees || globalEmployees.length === 0) { showToast("Belum ada data untuk di-export.", 'error'); return; }
 
-            const formattedData = globalEmployees.map(emp => ({
-                'Waktu Pengisian': emp.waktu || '', 'Foto Karyawan (URL)': emp.fotoUrl || '',
-                'Nama Lengkap': emp.namaLengkap || '', 'Pengalaman Garment YA/TIDAK': emp.pengalamanGarment || '',
-                'Nama Perusahaan': emp.namaPerusahaan || '', 'BAGIAN': emp.bagian || '', 'LAMA BEKERJA': emp.lamaBekerja || '',
-                'Jenis Kelamin': emp.jenisKelamin || '', 'Tempat Lahir': emp.tempatLahir || '', 'Tanggal Lahir': emp.tanggalLahir || '',
-                'Status Pernikahan': emp.statusPernikahan || '', 'Jumlah anak': emp.jumlahAnak || '', 'Agama': emp.agama || '', 
-                'Alamat Email': emp.alamatEmail || '', 'No Handphone Aktif': emp.noHandphone || '', 'Nomor KTP': emp.nomorKTP || '',
-                'Provinsi': emp.provinsi || '', 'Kabupaten': emp.kabupaten || '', 'Kecamatan': emp.kecamatan || '', 
-                'Kelurahan': emp.kelurahan || '', 'RT': emp.rt || '', 'RW': emp.rw || '', 'Alamat (Desa/Dukuh)': emp.alamatDesa || '',
-                'Pendidikan Terakhir': emp.pendidikanTerakhir || '', 'Jurusan Sekolah': emp.jurusanSekolah || '',
-                'Nama Ibu Kandung': emp.namaIbuKandung || '', 'Nama Ayah Kandung': emp.namaAyahKandung || '',
-                'Nama Suami/Istri': emp.namaSuamiIstri || '', 'Nama Ibu Mertua': emp.namaIbuMertua || '',
-                'Nama Ayah Mertua': emp.namaAyahMertua || '', 'Nama Anak Pertama': emp.namaAnak1 || '', 
-                'Nama Anak Kedua': emp.namaAnak2 || '', 'Nama Anak Ketiga': emp.namaAnak3 || '',
-                'Nama Kontak Darurat': emp.namaKontakDarurat || '', 'No telp kontak darurat': emp.noTelpDarurat || '',
-                'Hubungan': emp.hubungan || '', 'Alamat Lengkap (Gabungan)': emp.alamatLengkap || ''
-            }));
+                const formattedData = globalEmployees.map(emp => ({
+                    'Waktu Pengisian': emp.waktu || '', 'Foto Karyawan (URL)': emp.fotoUrl || '',
+                    'Nama Lengkap': emp.namaLengkap || '', 'Pengalaman Garment YA/TIDAK': emp.pengalamanGarment || '',
+                    'Nama Perusahaan': emp.namaPerusahaan || '', 'BAGIAN': emp.bagian || '', 'LAMA BEKERJA': emp.lamaBekerja || '',
+                    'Jenis Kelamin': emp.jenisKelamin || '', 'Tempat Lahir': emp.tempatLahir || '', 'Tanggal Lahir': emp.tanggalLahir || '',
+                    'Status Pernikahan': emp.statusPernikahan || '', 'Jumlah anak': emp.jumlahAnak || '', 'Agama': emp.agama || '', 
+                    'Alamat Email': emp.alamatEmail || '', 
+                    'No Handphone Aktif': emp.noHandphone ? "'" + emp.noHandphone.replace(/'/g, "") : '', 
+                    'Nomor KTP': emp.nomorKTP ? "'" + emp.nomorKTP.replace(/'/g, "") : '',
+                    'Provinsi': emp.provinsi || '', 'Kabupaten': emp.kabupaten || '', 'Kecamatan': emp.kecamatan || '', 
+                    'Kelurahan': emp.kelurahan || '', 
+                    'RT': emp.rt ? "'" + emp.rt.replace(/'/g, "") : '', 
+                    'RW': emp.rw ? "'" + emp.rw.replace(/'/g, "") : '', 
+                    'Alamat (Desa/Dukuh)': emp.alamatDesa || '',
+                    'Pendidikan Terakhir': emp.pendidikanTerakhir || '', 'Jurusan Sekolah': emp.jurusanSekolah || '',
+                    'Nama Ibu Kandung': emp.namaIbuKandung || '', 'Nama Ayah Kandung': emp.namaAyahKandung || '',
+                    'Nama Suami/Istri': emp.namaSuamiIstri || '', 'Nama Ibu Mertua': emp.namaIbuMertua || '',
+                    'Nama Ayah Mertua': emp.namaAyahMertua || '', 'Nama Anak Pertama': emp.namaAnak1 || '', 
+                    'Nama Anak Kedua': emp.namaAnak2 || '', 'Nama Anak Ketiga': emp.namaAnak3 || '',
+                    'Nama Kontak Darurat': emp.namaKontakDarurat || '', 
+                    'No telp kontak darurat': emp.noTelpDarurat ? "'" + emp.noTelpDarurat.replace(/'/g, "") : '',
+                    'Hubungan': emp.hubungan || '', 'Alamat Lengkap (Gabungan)': emp.alamatLengkap || ''
+                }));
 
-            const worksheet = XLSX.utils.json_to_sheet(formattedData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Data Karyawan");
-            XLSX.writeFile(workbook, "Database_Karyawan_Baru.xlsx");
-        });
+                const worksheet = XLSX.utils.json_to_sheet(formattedData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Data Karyawan");
+                XLSX.writeFile(workbook, "Database_Karyawan_Baru.xlsx");
+            });
+        }
     </script>
 </body>
 </html>
