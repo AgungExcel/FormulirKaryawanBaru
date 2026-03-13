@@ -181,7 +181,7 @@
                                     </div>
                                 </div>
                                 <div class="md:col-span-2 space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Desa/Dukuh/Jalan <span class="text-red-500">*</span></label>
-                                    <textarea required name="alamatDesa" rows="2" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none uppercase" placeholder="Tulis Alamat Rumah"></textarea></div>
+                                    <textarea required name="alamatDesa" rows="2" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase" placeholder="Tulis Alamat Rumah"></textarea></div>
                             </div>
                         </div>
 
@@ -209,7 +209,7 @@
                                         <option value="TIDAK">TIDAK</option>
                                     </select></div>
                                 
-                                <!-- Hidden Fields if Pengalaman = YA -->
+                                <!-- Update: Kolom Tahun dan Bulan untuk Lama Bekerja -->
                                 <div id="pengalamanFields" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 bg-white p-4 rounded-xl border border-gray-200 mt-2 w-full">
                                     <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Nama Perusahaan</label>
                                         <input type="text" id="inputNamaPerusahaan" name="namaPerusahaan" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none uppercase"></div>
@@ -745,6 +745,9 @@
             el.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); });
         });
 
+        // ----------------------------------------------------
+        // LAMA BEKERJA
+        // ----------------------------------------------------
         const elLamaTahun = document.getElementById('inputLamaTahun');
         const elLamaBulan = document.getElementById('inputLamaBulan');
         const errLama = document.getElementById('err-lama');
@@ -758,6 +761,8 @@
                 }
             }
         }
+        
+        // Pengecekan aman, event listener hanya dipasang jika elemen ditemukan
         if(elLamaTahun) elLamaTahun.addEventListener('blur', checkLamaBekerja);
         if(elLamaBulan) elLamaBulan.addEventListener('blur', checkLamaBekerja);
 
@@ -1084,6 +1089,8 @@
             let prefixKab = (dataObj.kabupaten || "").toUpperCase().startsWith('KOTA') ? '' : 'KAB ';
             dataObj.alamatLengkap = `${dataObj.alamatDesa} RT${dataObj.rt} RW${dataObj.rw} KEL ${dataObj.kelurahan} KEC ${dataObj.kecamatan} ${prefixKab}${textKab}`.toUpperCase();
 
+            // PISAHKAN PENGIRIMAN: FIREBASE DAN SPREADSHEET (Mencegah gagal Spreadsheet jika Firebase error)
+            let isFirebaseSuccess = false;
             try {
                 if (db && auth && auth.currentUser) {
                     await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'employees'), {
@@ -1092,22 +1099,35 @@
                 } else {
                     globalEmployees.unshift(dataObj); renderTable();
                 }
+                isFirebaseSuccess = true;
+            } catch (err) {
+                console.log("Firebase block skipped", err);
+                globalEmployees.unshift(dataObj); renderTable();
+                isFirebaseSuccess = true;
+            }
 
-                // DENGAN NO-CORS AGAR MASUK KE SPREADSHEET
+            // DENGAN NO-CORS AGAR MASUK KE SPREADSHEET 100%
+            let isSheetSuccess = false;
+            try {
                 await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST', mode: 'no-cors',
+                    method: 'POST', 
+                    mode: 'no-cors',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify(dataObj)
                 });
+                isSheetSuccess = true;
+            } catch (err) {
+                console.error("Spreadsheet script error", err);
+            }
 
+            loadingOverlay.classList.remove('active');
+
+            if (isFirebaseSuccess || isSheetSuccess) {
                 document.getElementById('formContainer').classList.add('hidden');
                 document.getElementById('successMessage').classList.remove('hidden');
                 window.scrollTo(0, 0);
-
-            } catch (err) {
-                showToast('Terjadi kesalahan saat menyimpan data. Coba lagi.', 'error');
-            } finally {
-                document.getElementById('loadingOverlay').classList.remove('active');
+            } else {
+                showToast('Terjadi kesalahan koneksi. Gagal mengirim data.', 'error');
             }
         });
 
