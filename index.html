@@ -192,8 +192,8 @@
                                         <input required type="text" inputmode="numeric" maxlength="2" id="inputRW" name="rw" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none" placeholder="02">
                                     </div>
                                 </div>
-                                <div class="md:col-span-2 space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Desa/Dukuh/Jalan <span class="text-red-500">*</span></label>
-                                    <textarea required name="alamatDesa" rows="2" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase" placeholder="Tulis Alamat Rumah"></textarea></div>
+                                <div class="md:col-span-2 space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Dukuh / Dusun / Jalan <span class="text-red-500">*</span></label>
+                                    <textarea required name="alamatDesa" rows="2" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase" placeholder="TULIS DUKUH/DUSUN Tanpa RT RW"></textarea></div>
                             </div>
                         </div>
 
@@ -308,7 +308,7 @@
                         </div>
 
                         <!-- Bagian Tambahan: Upload Pas Foto -->
-                        <div class="bg-blue-50 p-4 md:p-6 rounded-xl border border-blue-200">
+                        <div id="sectionFoto" class="bg-blue-50 p-4 md:p-6 rounded-xl border border-blue-200 transition-colors duration-500">
                             <h2 class="text-base md:text-lg font-bold text-blue-800 flex items-center gap-2 mb-4">
                                 <i data-lucide="camera" class="w-5 h-5 text-blue-600"></i> Pas Foto Resmi
                             </h2>
@@ -367,7 +367,7 @@
                     </div>
                 </div>
 
-                <!-- AREA FILTER TANGGAL (BARU) -->
+                <!-- AREA FILTER TANGGAL -->
                 <div class="flex flex-col sm:flex-row items-center gap-3 w-full bg-slate-700/50 p-3 rounded-lg border border-slate-600">
                     <label class="text-sm font-medium text-slate-200">Filter Tanggal Submit:</label>
                     <input type="date" id="filterDate" class="px-3 py-1.5 border border-slate-500 bg-slate-800 text-white rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto">
@@ -525,7 +525,7 @@
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfB9VMrfEo7r5Dmz6G7zSx6bMf5KKVgsDotFhWvh1UEeWkcQyQS5YGuhli-XujVfwUig/exec";
 
         let globalEmployees = [];
-        let filteredEmployees = []; // Menyimpan data yang sudah di-filter
+        let filteredEmployees = []; 
 
         lucide.createIcons();
 
@@ -548,7 +548,7 @@
         };
 
         // ----------------------------------------------------
-        // FILTER TANGGAL (BARU)
+        // FILTER TANGGAL
         // ----------------------------------------------------
         const filterDateEl = document.getElementById('filterDate');
         const btnClearFilter = document.getElementById('btnClearFilter');
@@ -609,7 +609,26 @@
         }
 
         // ----------------------------------------------------
-        // UPLOAD FOTO & AUTO-CROP 3x4 (TANPA AI, 100% STABIL)
+        // FORMATTER TANGGAL KE EXCEL (NATIVE DATE TYPE)
+        // ----------------------------------------------------
+        function parseDateForExcel(dateStr) {
+            if(!dateStr) return '';
+            const parts = dateStr.split('-');
+            if(parts.length !== 3) return dateStr;
+            // Mendeteksi posisi tahun untuk parse yang tepat
+            const y = parseInt(parts[0].length === 4 ? parts[0] : parts[2], 10); 
+            const m = parseInt(parts[0].length === 4 ? parts[1] : parts[1], 10);
+            const d = parseInt(parts[0].length === 4 ? parts[2] : parts[0], 10);
+            
+            // Set jam 12 siang agar aman dari pergeseran zona waktu saat Export
+            const date = new Date(y, m - 1, d, 12, 0, 0);
+            if(isNaN(date.getTime())) return dateStr;
+            
+            return date;
+        }
+
+        // ----------------------------------------------------
+        // UPLOAD FOTO & AUTO-CROP 3x4
         // ----------------------------------------------------
         let fotoBase64Data = "";
         let fotoFileName = "";
@@ -646,7 +665,6 @@
                         const img = new Image();
                         img.onload = function() {
                             const canvas = document.createElement('canvas');
-                            // Target Ukuran Pas Foto (Rasio 3:4)
                             const targetWidth = 450; 
                             const targetHeight = 600;
                             canvas.width = targetWidth;
@@ -654,29 +672,21 @@
                             
                             const ctx = canvas.getContext('2d');
                             
-                            // Logika Pemotongan Tengah (Center Crop)
                             let sourceX = 0, sourceY = 0, sourceWidth = img.width, sourceHeight = img.height;
                             const imgRatio = img.width / img.height;
                             const targetRatio = targetWidth / targetHeight;
 
                             if (imgRatio > targetRatio) {
-                                // Gambar kepanjangan ke samping (Landscape) -> Potong kanan kiri
                                 sourceWidth = img.height * targetRatio;
                                 sourceX = (img.width - sourceWidth) / 2;
                             } else {
-                                // Gambar ketinggian (Portrait) -> Potong atas bawah sedikit
                                 sourceHeight = img.width / targetRatio;
                                 sourceY = (img.height - sourceHeight) / 2;
                             }
 
-                            // Latar putih (jika ada bagian transparan)
                             ctx.fillStyle = '#FFFFFF';
                             ctx.fillRect(0, 0, targetWidth, targetHeight);
-                            
-                            // Menggambar foto yang sudah dipotong (crop) ke canvas
                             ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, targetWidth, targetHeight);
-                            
-                            // Konversi ke format JPEG dengan kualitas 90%
                             resolve(canvas.toDataURL('image/jpeg', 0.9));
                         };
                         img.onerror = reject;
@@ -804,8 +814,20 @@
             elRW.addEventListener('blur', function() { checkRTRW(this); }); 
         }
 
+        // PERBAIKAN: Penanganan khusus input No HP agar auto rubah 62 menjadi 0
         document.querySelectorAll('input[inputmode="numeric"]:not(#inputKTP):not(#inputRT):not(#inputRW)').forEach(el => {
-            el.addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); });
+            el.addEventListener('input', function() { 
+                let val = this.value.replace(/\D/g, ''); 
+                
+                // Jika input ini adalah No HP atau Telp Darurat
+                if(this.id === 'inputNoHP' || this.id === 'inputTelpDarurat') {
+                    if (val.startsWith('62')) {
+                        val = '0' + val.substring(2);
+                    }
+                }
+                
+                this.value = val; 
+            });
         });
 
         // ----------------------------------------------------
@@ -1010,7 +1032,6 @@
                         btnViewForm.classList.remove('bg-white', 'shadow-sm', 'text-blue-600'); btnViewForm.classList.add('text-gray-500');
                     }
                     
-                    // OTOMATIS SINKRONISASI SAAT MASUK KE MENU ADMIN
                     fetchSpreadsheetData();
                 } else {
                     showToast('Password yang Anda masukkan salah!', 'error');
@@ -1061,22 +1082,29 @@
         }
 
         // ----------------------------------------------------
-        // API WILAYAH (EMSIFA)
+        // API WILAYAH (PERBAIKAN: MENGGUNAKAN IBNUX DATA INDONESIA)
         // ----------------------------------------------------
         const elProvinsi = document.getElementById('provinsi');
         const elKabupaten = document.getElementById('kabupaten');
         const elKecamatan = document.getElementById('kecamatan');
         const elKelurahan = document.getElementById('kelurahan');
 
-        fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
-            .then(res => res.json())
+        fetch('https://ibnux.github.io/data-indonesia/provinsi.json')
+            .then(res => {
+                if (!res.ok) throw new Error("Gagal mengambil data Provinsi");
+                return res.json();
+            })
             .then(data => {
-                data.sort((a, b) => a.name.localeCompare(b.name));
+                data.sort((a, b) => a.nama.localeCompare(b.nama));
                 data.forEach(p => {
                     const opt = document.createElement('option');
-                    opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
+                    opt.value = p.nama; opt.dataset.id = p.id; opt.textContent = p.nama;
                     if(elProvinsi) elProvinsi.appendChild(opt);
                 });
+            })
+            .catch(err => {
+                console.error("API Error (Provinsi):", err);
+                showToast("Gagal memuat data Provinsi dari server API.", "error");
             });
 
         if(elProvinsi) {
@@ -1087,16 +1115,23 @@
                 if(elKelurahan) { elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>'; elKelurahan.disabled = true; }
 
                 if (id && elKabupaten) {
-                    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${id}.json`)
-                    .then(res => res.json())
+                    fetch(`https://ibnux.github.io/data-indonesia/kabupaten/${id}.json`)
+                    .then(res => {
+                        if (!res.ok) throw new Error("Gagal mengambil data Kabupaten");
+                        return res.json();
+                    })
                     .then(data => {
-                        data.sort((a, b) => a.name.localeCompare(b.name));
+                        data.sort((a, b) => a.nama.localeCompare(b.nama));
                         data.forEach(p => {
                             const opt = document.createElement('option');
-                            opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
+                            opt.value = p.nama; opt.dataset.id = p.id; opt.textContent = p.nama;
                             elKabupaten.appendChild(opt);
                         });
                         elKabupaten.disabled = false;
+                    })
+                    .catch(err => {
+                        console.error("API Error (Kabupaten):", err);
+                        showToast("Gagal memuat data Kabupaten dari server API.", "error");
                     });
                 }
             });
@@ -1109,16 +1144,23 @@
                 if(elKelurahan) { elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>'; elKelurahan.disabled = true; }
 
                 if (id && elKecamatan) {
-                    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${id}.json`)
-                    .then(res => res.json())
+                    fetch(`https://ibnux.github.io/data-indonesia/kecamatan/${id}.json`)
+                    .then(res => {
+                        if (!res.ok) throw new Error("Gagal mengambil data Kecamatan");
+                        return res.json();
+                    })
                     .then(data => {
-                        data.sort((a, b) => a.name.localeCompare(b.name));
+                        data.sort((a, b) => a.nama.localeCompare(b.nama));
                         data.forEach(p => {
                             const opt = document.createElement('option');
-                            opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
+                            opt.value = p.nama; opt.dataset.id = p.id; opt.textContent = p.nama;
                             elKecamatan.appendChild(opt);
                         });
                         elKecamatan.disabled = false;
+                    })
+                    .catch(err => {
+                        console.error("API Error (Kecamatan):", err);
+                        showToast("Gagal memuat data Kecamatan dari server API.", "error");
                     });
                 }
             });
@@ -1130,16 +1172,23 @@
                 if(elKelurahan) { elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>'; elKelurahan.disabled = true; }
 
                 if (id && elKelurahan) {
-                    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${id}.json`)
-                    .then(res => res.json())
+                    fetch(`https://ibnux.github.io/data-indonesia/kelurahan/${id}.json`)
+                    .then(res => {
+                        if (!res.ok) throw new Error("Gagal mengambil data Kelurahan/Desa");
+                        return res.json();
+                    })
                     .then(data => {
-                        data.sort((a, b) => a.name.localeCompare(b.name));
+                        data.sort((a, b) => a.nama.localeCompare(b.nama));
                         data.forEach(p => {
                             const opt = document.createElement('option');
-                            opt.value = p.name; opt.dataset.id = p.id; opt.textContent = p.name;
+                            opt.value = p.nama; opt.dataset.id = p.id; opt.textContent = p.nama;
                             elKelurahan.appendChild(opt);
                         });
                         elKelurahan.disabled = false;
+                    })
+                    .catch(err => {
+                        console.error("API Error (Kelurahan/Desa):", err);
+                        showToast("Gagal memuat data Kelurahan dari server API.", "error");
                     });
                 }
             });
@@ -1166,6 +1215,24 @@
                      }
                 }
 
+                // Validasi WAJIB Upload Pas Foto
+                if (!fotoBase64Data) {
+                    showToast("WAJIB Upload Pas Foto sebelum mengirim data!", "error");
+                    const secFoto = document.getElementById('sectionFoto');
+                    if(secFoto) {
+                        // Gulir layar ke kotak Pas Foto
+                        secFoto.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        // Efek peringatan border merah
+                        secFoto.classList.remove('border-blue-200', 'bg-blue-50');
+                        secFoto.classList.add('border-red-500', 'bg-red-50', 'border-2');
+                        setTimeout(() => {
+                            secFoto.classList.remove('border-red-500', 'bg-red-50', 'border-2');
+                            secFoto.classList.add('border-blue-200', 'bg-blue-50');
+                        }, 2500);
+                    }
+                    return;
+                }
+
                 const garmentEl = document.getElementById('pengalamanGarment');
                 if(garmentEl && garmentEl.value === 'YA') {
                     if(elLamaTahun && elLamaBulan && elLamaTahun.value === '' && elLamaBulan.value === '') {
@@ -1185,7 +1252,6 @@
                 const fd = new FormData(e.target);
                 const dataObj = Object.fromEntries(fd.entries());
                 
-                // Set parameter tidak dikirim
                 dataObj.waktu = ""; 
 
                 if(dataObj.noHandphone) dataObj.noHandphone = "'" + dataObj.noHandphone;
@@ -1210,7 +1276,6 @@
                 dataObj.alamatLengkap = `${dataObj.alamatDesa} RT${dataObj.rt.replace(/'/g,'')} RW${dataObj.rw.replace(/'/g,'')} KEL ${dataObj.kelurahan} KEC ${dataObj.kecamatan} ${prefixKab}${textKab}`.toUpperCase();
 
                 try {
-                    // KIRIM MENGGUNAKAN METODE URLSearchParams (MENCEGAH BLOKIR BROWSER)
                     const formDataParams = new URLSearchParams();
                     formDataParams.append("data", JSON.stringify(dataObj));
 
@@ -1242,7 +1307,7 @@
         }
 
         // ----------------------------------------------------
-        // MENARIK DATA DARI SPREADSHEET (MEMBERIKAN TANDA WARNA)
+        // MENARIK DATA DARI SPREADSHEET 
         // ----------------------------------------------------
         async function fetchSpreadsheetData() {
             const tbody = document.getElementById('tableBody');
@@ -1261,7 +1326,7 @@
                 }
                 
                 globalEmployees = data;
-                applyFilter(); // Panggil applyFilter agar mengisi filteredEmployees dan renderTable
+                applyFilter(); 
                 showToast("Data berhasil disinkronisasi dengan Spreadsheet!", "success");
                 
                 if(syncBadge) {
@@ -1286,7 +1351,6 @@
             const tbody = document.getElementById('tableBody');
             if(!tbody) return;
 
-            // Menggunakan filteredEmployees, bukan globalEmployees langsung
             if(!filteredEmployees || filteredEmployees.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="37" class="px-6 py-12 text-center text-gray-500">Belum ada data karyawan / Data kosong pada filter ini.</td></tr>`; return;
             }
@@ -1295,7 +1359,6 @@
                 if (!url) return '';
                 const match = url.match(/\/d\/(.+?)\//);
                 if (match && match[1]) {
-                    // Menggunakan endpoint thumbnail Google Drive yang lebih stabil
                     return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w150-h200`;
                 }
                 return url;
@@ -1415,7 +1478,7 @@
         }
 
         // ----------------------------------------------------
-        // FITUR EXPORT EXCEL BERDASARKAN FILTER
+        // FITUR EXPORT EXCEL (PERBAIKAN FORMAT TEXT TANPA KUTIP)
         // ----------------------------------------------------
         const btnExportExcel = document.getElementById('btnExportExcel');
         if(btnExportExcel) {
@@ -1427,15 +1490,19 @@
                     'Waktu Pengisian': emp.waktu || '', 'Foto Karyawan (URL)': emp.fotoUrl || '',
                     'Nama Lengkap': emp.namaLengkap || '', 'Pengalaman Garment YA/TIDAK': emp.pengalamanGarment || '',
                     'Nama Perusahaan': emp.namaPerusahaan || '', 'BAGIAN': emp.bagian || '', 'LAMA BEKERJA': emp.lamaBekerja || '',
-                    'Jenis Kelamin': emp.jenisKelamin || '', 'Tempat Lahir': emp.tempatLahir || '', 'Tanggal Lahir': emp.tanggalLahir || '',
+                    'Jenis Kelamin': emp.jenisKelamin || '', 'Tempat Lahir': emp.tempatLahir || '', 
+                    'Tanggal Lahir': parseDateForExcel(emp.tanggalLahir), // Terapkan tipe Date Asli
                     'Status Pernikahan': emp.statusPernikahan || '', 'Jumlah anak': emp.jumlahAnak || '', 'Agama': emp.agama || '', 
                     'Alamat Email': emp.alamatEmail || '', 
-                    'No Handphone Aktif': emp.noHandphone ? "'" + emp.noHandphone.replace(/'/g, "") : '', 
-                    'Nomor KTP': emp.nomorKTP ? "'" + emp.nomorKTP.replace(/'/g, "") : '',
+                    
+                    // PERBAIKAN: Menghapus tanda (') agar NIK & Nomor diekspor bersih, namun tetap terformat string.
+                    'No Handphone Aktif': emp.noHandphone ? emp.noHandphone.replace(/'/g, "") : '', 
+                    'Nomor KTP': emp.nomorKTP ? emp.nomorKTP.replace(/'/g, "") : '',
+                    
                     'Provinsi': emp.provinsi || '', 'Kabupaten': emp.kabupaten || '', 'Kecamatan': emp.kecamatan || '', 
                     'Kelurahan': emp.kelurahan || '', 
-                    'RT': emp.rt ? "'" + emp.rt.replace(/'/g, "") : '', 
-                    'RW': emp.rw ? "'" + emp.rw.replace(/'/g, "") : '', 
+                    'RT': emp.rt ? emp.rt.replace(/'/g, "") : '', 
+                    'RW': emp.rw ? emp.rw.replace(/'/g, "") : '', 
                     'Alamat (Desa/Dukuh)': emp.alamatDesa || '',
                     'Pendidikan Terakhir': emp.pendidikanTerakhir || '', 'Jurusan Sekolah': emp.jurusanSekolah || '',
                     'Nama Ibu Kandung': emp.namaIbuKandung || '', 'Nama Ayah Kandung': emp.namaAyahKandung || '',
@@ -1443,11 +1510,41 @@
                     'Nama Ayah Mertua': emp.namaAyahMertua || '', 'Nama Anak Pertama': emp.namaAnak1 || '', 
                     'Nama Anak Kedua': emp.namaAnak2 || '', 'Nama Anak Ketiga': emp.namaAnak3 || '',
                     'Nama Kontak Darurat': emp.namaKontakDarurat || '', 
-                    'No telp kontak darurat': emp.noTelpDarurat ? "'" + emp.noTelpDarurat.replace(/'/g, "") : '',
+                    
+                    // PERBAIKAN: Menghapus tanda (') untuk nomor telp darurat
+                    'No telp kontak darurat': emp.noTelpDarurat ? emp.noTelpDarurat.replace(/'/g, "") : '',
+                    
                     'Hubungan': emp.hubungan || '', 'Alamat Lengkap (Gabungan)': emp.alamatLengkap || ''
                 }));
 
-                const worksheet = XLSX.utils.json_to_sheet(formattedData);
+                // Gunakan cellDates: true agar SheetJS mengenali objek Date JavaScript
+                const worksheet = XLSX.utils.json_to_sheet(formattedData, { cellDates: true });
+                
+                // --- PERBAIKAN: ATUR FORMAT TAMPILAN KOLOM TANGGAL LAHIR ---
+                const range = XLSX.utils.decode_range(worksheet['!ref']);
+                let tglLahirCol = -1;
+                
+                // Cari Index Kolom "Tanggal Lahir"
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cell = worksheet[XLSX.utils.encode_cell({r: 0, c: C})];
+                    if (cell && cell.v === 'Tanggal Lahir') {
+                        tglLahirCol = C;
+                        break;
+                    }
+                }
+
+                // Ubah format string tampilan menjadi dd-mmm-yyyy (Format sel tetap bertipe Date)
+                if (tglLahirCol !== -1) {
+                    for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                        const cellAddress = XLSX.utils.encode_cell({r: R, c: tglLahirCol});
+                        const cell = worksheet[cellAddress];
+                        if (cell) {
+                            cell.z = 'dd-mmm-yyyy'; 
+                        }
+                    }
+                }
+                // -----------------------------------------------------------
+
                 const workbook = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(workbook, worksheet, "Data Karyawan");
                 XLSX.writeFile(workbook, "Database_Karyawan_Baru.xlsx");
@@ -1479,18 +1576,15 @@
                         const fileId = match[1];
                         const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
                         
-                        // PERBAIKAN: Menggunakan Iframe tersembunyi agar browser tidak memblokir download ganda
                         const iframe = document.createElement('iframe');
                         iframe.style.display = 'none';
                         iframe.src = downloadUrl;
                         document.body.appendChild(iframe);
                         
-                        // Bersihkan Iframe setelah 15 detik
                         setTimeout(() => {
                             if(document.body.contains(iframe)) document.body.removeChild(iframe);
                         }, 15000);
                         
-                        // Jeda waktu 2,5 detik antar file agar tidak membanjiri sistem
                         await new Promise(r => setTimeout(r, 2500)); 
                     }
                 }
