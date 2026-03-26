@@ -620,8 +620,8 @@
             const m = parseInt(parts[0].length === 4 ? parts[1] : parts[1], 10);
             const d = parseInt(parts[0].length === 4 ? parts[2] : parts[0], 10);
             
-            // Set jam 12 siang agar aman dari pergeseran zona waktu saat Export
-            const date = new Date(y, m - 1, d, 12, 0, 0);
+            // Set jam 00:00:00 agar murni hanya tanggal tanpa waktu (jam) di Formula Bar Excel
+            const date = new Date(y, m - 1, d, 0, 0, 0);
             if(isNaN(date.getTime())) return dateStr;
             
             return date;
