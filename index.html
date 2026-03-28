@@ -318,6 +318,15 @@
                                 <input type="file" id="inputFotoKamera" accept="image/*" capture="environment" class="hidden">
                                 <input type="file" id="inputFotoGaleri" accept="image/*" class="hidden">
                                 
+                                <!-- Opsi Hapus Background AI -->
+                                <div class="flex items-center gap-3 bg-white p-3 rounded-xl border border-blue-100 shadow-sm mt-2 mb-2">
+                                    <input type="checkbox" id="chkRemoveBg" class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer" checked>
+                                    <label for="chkRemoveBg" class="text-sm font-bold text-slate-700 cursor-pointer flex-1 flex flex-col">
+                                        <span>Ganti Background Putih Otomatis <span class="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded ml-1">AI</span></span>
+                                        <span class="text-[10px] sm:text-xs text-gray-500 font-normal mt-0.5">Membutuhkan koneksi internet untuk memproses gambar.</span>
+                                    </label>
+                                </div>
+
                                 <div class="flex flex-col sm:flex-row gap-3 mt-2">
                                     <button type="button" onclick="document.getElementById('inputFotoKamera').click()" class="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center gap-2 transition-colors text-sm font-medium shadow-sm">
                                         <i data-lucide="camera" class="w-5 h-5"></i> Buka Kamera
@@ -628,7 +637,7 @@
         }
 
         // ----------------------------------------------------
-        // UPLOAD FOTO & AUTO-CROP 3x4
+        // UPLOAD FOTO, HAPUS BACKGROUND (AI), & AUTO-CROP 3x4
         // ----------------------------------------------------
         let fotoBase64Data = "";
         let fotoFileName = "";
@@ -656,9 +665,45 @@
 
             loadingOverlay.classList.add('active');
             loadingText.textContent = "Memproses Pas Foto...";
-            loadingSubText.textContent = "Memotong dan menyesuaikan rasio ukuran...";
+            loadingSubText.textContent = "Memulai proses unggah...";
 
             try {
+                // --- INTEGRASI REMOVE.BG (HAPUS BACKGROUND) ---
+                const chkRemoveBg = document.getElementById('chkRemoveBg');
+                let sourceFile = file; // Default pakai file asli
+
+                if (chkRemoveBg && chkRemoveBg.checked) {
+                    loadingSubText.textContent = "Menghapus background & mengganti ke putih... (Mohon tunggu)";
+                    
+                    const formData = new FormData();
+                    formData.append('image_file', file);
+                    formData.append('size', 'auto');
+                    formData.append('bg_color', 'white'); // BG jadi putih otomatis
+
+                    try {
+                        const removeBgResponse = await fetch('https://api.remove.bg/v1.0/removebg', {
+                            method: 'POST',
+                            headers: {
+                                'X-Api-Key': 'XfkHneBXfFiyWQjAhJ8MuoAP'
+                            },
+                            body: formData
+                        });
+
+                        if (removeBgResponse.ok) {
+                            sourceFile = await removeBgResponse.blob(); // Gunakan hasil AI
+                        } else {
+                            console.warn("Remove.bg gagal:", await removeBgResponse.text());
+                            showToast("Gagal hapus background AI. Memakai foto asli.", "error");
+                        }
+                    } catch (apiErr) {
+                        console.error("Koneksi Remove.bg error:", apiErr);
+                        showToast("Koneksi ke AI terputus. Memakai foto asli.", "error");
+                    }
+                }
+                
+                loadingSubText.textContent = "Menyesuaikan ukuran rasio 3x4...";
+                // ---------------------------------------------
+
                 const finalDataUrl = await new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = function(event) {
@@ -693,7 +738,7 @@
                         img.src = event.target.result;
                     };
                     reader.onerror = reject;
-                    reader.readAsDataURL(file);
+                    reader.readAsDataURL(sourceFile); // Gunakan file hasil AI (atau asli)
                 });
 
                 fotoBase64Data = finalDataUrl.split(',')[1];
@@ -701,7 +746,7 @@
                 if(fotoPreviewContainer) fotoPreviewContainer.classList.remove('hidden');
                 
                 loadingOverlay.classList.remove('active');
-                showToast("Pas foto berhasil dipotong dan disiapkan!", "success");
+                showToast("Pas foto berhasil diproses dan disiapkan!", "success");
 
             } catch (err) {
                 console.error("Proses Foto Error:", err);
