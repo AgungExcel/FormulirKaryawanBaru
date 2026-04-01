@@ -143,7 +143,7 @@
                                             <option value="MARRIED">MARRIED (Menikah)</option>
                                             <option value="WIDOW">WIDOW (Janda / Duda)</option>
                                         </select></div>
-                                    <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Jumlah Anak <span class="text-red-500">*</span></label>
+                                    <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Status PTKP / Anak <span class="text-red-500">*</span></label>
                                         <select required id="jumlahAnak" name="jumlahAnak" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-100" disabled>
                                             <option value="">Pilih Status Dahulu</option>
                                         </select></div>
@@ -204,15 +204,15 @@
                             </h2>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                                 <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Pendidikan Terakhir <span class="text-red-500">*</span></label>
-                                    <select required name="pendidikanTerakhir" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none bg-white">
+                                    <select required id="pendidikanTerakhir" name="pendidikanTerakhir" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none bg-white">
                                         <option value="">Pilih Pendidikan</option>
                                         <option value="SD">SD</option><option value="SMP">SMP</option>
                                         <option value="SMA/SMK">SMA/SMK</option>
                                         <option value="D1">D1</option><option value="D2">D2</option><option value="D3">D3</option>
                                         <option value="D4">D4</option><option value="S1">S1</option><option value="S2">S2</option>
                                     </select></div>
-                                <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Jurusan Sekolah</label>
-                                    <input type="text" name="jurusanSekolah" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none uppercase" placeholder="Isi untuk SMA keatas"></div>
+                                <div class="space-y-1.5 w-full"><label id="labelJurusan" class="text-sm font-medium text-gray-700">Jurusan Sekolah</label>
+                                    <input type="text" id="inputJurusan" name="jurusanSekolah" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none uppercase" placeholder="Isi untuk SMA keatas"></div>
                                 
                                 <div class="space-y-1.5 md:col-span-2 w-full"><label class="text-sm font-medium text-gray-700">Pengalaman Garment? <span class="text-red-500">*</span></label>
                                     <select required id="pengalamanGarment" name="pengalamanGarment" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 outline-none bg-white">
@@ -637,6 +637,29 @@
         }
 
         // ----------------------------------------------------
+        // LOGIKA WAJIB JURUSAN UNTUK SMA KE ATAS
+        // ----------------------------------------------------
+        const elPendidikan = document.getElementById('pendidikanTerakhir');
+        const elJurusan = document.getElementById('inputJurusan');
+        const labelJurusan = document.getElementById('labelJurusan');
+
+        if(elPendidikan && elJurusan) {
+            elPendidikan.addEventListener('change', function() {
+                const wajibJurusan = ['SMA/SMK', 'D1', 'D2', 'D3', 'D4', 'S1', 'S2'];
+                if (wajibJurusan.includes(this.value)) {
+                    elJurusan.required = true;
+                    if(labelJurusan) labelJurusan.innerHTML = 'Jurusan Sekolah <span class="text-red-500">*</span>';
+                    elJurusan.placeholder = "Wajib diisi untuk " + this.value;
+                } else {
+                    elJurusan.required = false;
+                    if(labelJurusan) labelJurusan.innerHTML = 'Jurusan Sekolah';
+                    elJurusan.placeholder = "Isi untuk SMA keatas";
+                    elJurusan.value = ''; // Kosongkan nilainya kalau SD/SMP
+                }
+            });
+        }
+
+        // ----------------------------------------------------
         // UPLOAD FOTO, HAPUS BACKGROUND (AI), & AUTO-CROP 3x4
         // ----------------------------------------------------
         let fotoBase64Data = "";
@@ -930,17 +953,21 @@
         const anakContainer = document.getElementById('anakContainer');
 
         const opsiAnak = {
-            "SINGLE": [{val: "TK0", text: "TK0"}],
+            "SINGLE": [{val: "TK0", text: "TK0 (Lajang/Tidak Kawin)"}],
             "MARRIED": [
-                {val: "K0", text: "K0"}, {val: "K1", text: "K1"}, {val: "K2", text: "K2"}, {val: "K3", text: "K3"}
+                {val: "K0", text: "K0 (Kawin, 0 Anak)"}, {val: "K1", text: "K1 (Kawin, 1 Anak)"}, {val: "K2", text: "K2 (Kawin, 2 Anak)"}, {val: "K3", text: "K3 (Kawin, 3 Anak)"}
             ],
             "WIDOW": [
-                {val: "TK0", text: "TK0"}, {val: "TK1", text: "TK1"}, {val: "TK2", text: "TK2"}, {val: "TK3", text: "TK3"}
+                {val: "TK0", text: "TK0 (Janda/Duda, 0 Anak)"}, {val: "TK1", text: "TK1 (Janda/Duda, 1 Anak)"}, {val: "TK2", text: "TK2 (Janda/Duda, 2 Anak)"}, {val: "TK3", text: "TK3 (Janda/Duda, 3 Anak)"}
             ]
         };
 
         function resetStatusAnak() {
-            if(elAnak) elAnak.innerHTML = '<option value="">Pilih Jumlah Anak</option>';
+            if(elAnak) {
+                elAnak.innerHTML = '<option value="">Pilih Status PTKP / Anak</option>';
+                elAnak.disabled = true;
+                elAnak.required = false;
+            }
             if(pasanganContainer) {
                 pasanganContainer.classList.add('hidden');
                 pasanganContainer.querySelectorAll('input').forEach(el => el.required = false);
@@ -964,13 +991,8 @@
                     });
                     if(elAnak) {
                         elAnak.disabled = false;
+                        elAnak.required = true; // Mewajibkan isian
                         elAnak.classList.remove('bg-gray-100'); elAnak.classList.add('bg-white');
-                    }
-                } else {
-                    if(elAnak) {
-                        elAnak.disabled = true;
-                        elAnak.classList.remove('bg-white'); elAnak.classList.add('bg-gray-100');
-                        elAnak.innerHTML = '<option value="">Pilih Status Dahulu</option>';
                     }
                 }
 
@@ -1260,6 +1282,22 @@
                      }
                 }
 
+                // Cek Validasi Spesifik Status & Anak
+                const dtObjTemp = Object.fromEntries(new FormData(e.target).entries());
+                if (dtObjTemp.statusPernikahan && !dtObjTemp.jumlahAnak) {
+                    showToast("Wajib memilih Status PTKP / Jumlah Anak!", "error"); 
+                    if(document.getElementById('jumlahAnak')) document.getElementById('jumlahAnak').focus();
+                    return;
+                }
+
+                // Cek Validasi Jurusan untuk SMA keatas
+                const wajibJurusanArr = ['SMA/SMK', 'D1', 'D2', 'D3', 'D4', 'S1', 'S2'];
+                if (wajibJurusanArr.includes(dtObjTemp.pendidikanTerakhir) && !dtObjTemp.jurusanSekolah.trim()) {
+                    showToast("Pendidikan " + dtObjTemp.pendidikanTerakhir + " wajib mengisi Jurusan Sekolah!", "error");
+                    if(document.getElementById('inputJurusan')) document.getElementById('inputJurusan').focus();
+                    return;
+                }
+
                 // Validasi WAJIB Upload Pas Foto
                 if (!fotoBase64Data) {
                     showToast("WAJIB Upload Pas Foto sebelum mengirim data!", "error");
@@ -1316,7 +1354,10 @@
                 dataObj.fotoBase64 = fotoBase64Data;
                 dataObj.fotoName = fotoFileName;
 
-                let textKab = dataObj.kabupaten || ""; textKab = textKab.replace(/^KABUPATEN\s+/i, '');
+                // PERBAIKAN ALAMAT KABUPATEN DOUBLE
+                let textKab = dataObj.kabupaten || ""; 
+                // Menghapus kata 'KABUPATEN ', 'KAB. ', atau 'KAB ' di awal string wilayah
+                textKab = textKab.replace(/^(KABUPATEN|KAB\.|KAB)\s+/i, '').trim();
                 let prefixKab = (dataObj.kabupaten || "").toUpperCase().startsWith('KOTA') ? '' : 'KAB ';
                 dataObj.alamatLengkap = `${dataObj.alamatDesa} RT${dataObj.rt.replace(/'/g,'')} RW${dataObj.rw.replace(/'/g,'')} KEL ${dataObj.kelurahan} KEC ${dataObj.kecamatan} ${prefixKab}${textKab}`.toUpperCase();
 
