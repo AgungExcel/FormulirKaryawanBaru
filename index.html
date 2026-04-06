@@ -160,8 +160,8 @@
                                 <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">No Handphone Aktif <span class="text-red-500">*</span></label>
                                     <input required type="text" inputmode="numeric" id="inputNoHP" name="noHandphone" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="08xxxx"></div>
                                 <div class="space-y-1.5 w-full">
-                                    <label class="text-sm font-medium text-gray-700">Alamat Email</label>
-                                    <input type="email" id="inputEmail" name="alamatEmail" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none lowercase" placeholder="email@contoh.com">
+                                    <label class="text-sm font-medium text-gray-700">Alamat Email <span class="text-red-500">*</span></label>
+                                    <input required type="email" id="inputEmail" name="alamatEmail" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none lowercase" placeholder="email@contoh.com">
                                     <p id="err-email" class="text-red-500 text-xs mt-1 hidden font-medium">❌ Format email tidak sesuai!</p>
                                 </div>
                                 
@@ -1270,7 +1270,16 @@
                 e.preventDefault();
 
                 if(elKTP && elKTP.value.length !== 16) { showToast("Pengisian Gagal! Nomor KTP Wajib 16 Digit.", "error"); elKTP.focus(); return; }
-                if(elEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(elEmail.value) && elEmail.value !== "") { showToast("Format Email Tidak Valid!", "error"); elEmail.focus(); return; }
+                
+                // VALIDASI EMAIL WAJIB
+                if(elEmail) {
+                    if(elEmail.value.trim() === "") { 
+                        showToast("Pengisian Gagal! Alamat Email Wajib Diisi.", "error"); elEmail.focus(); return; 
+                    }
+                    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(elEmail.value)) { 
+                        showToast("Format Email Tidak Valid!", "error"); elEmail.focus(); return; 
+                    }
+                }
 
                 if (elTglLahir && !elTglLahir.value) {
                      showToast("Isi Tanggal Lahir Anda!", "error"); elTglLahir.focus(); return;
