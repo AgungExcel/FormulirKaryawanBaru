@@ -17,6 +17,9 @@
     <!-- SheetJS (Export Excel) -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
+    <!-- QRCode Generator -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
     <style>
         .fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -118,8 +121,18 @@
                                         <option value="FEMALE">FEMALE (Perempuan)</option>
                                     </select></div>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 md:col-span-2">
-                                    <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Tempat Lahir <span class="text-red-500">*</span></label>
-                                        <input required type="text" name="tempatLahir" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none uppercase"></div>
+                                    <div class="space-y-1.5 w-full relative"><label class="text-sm font-medium text-gray-700">Tempat Lahir <span class="text-red-500">*</span></label>
+                                        <input type="hidden" id="tempatLahir" name="tempatLahir">
+                                        <div class="relative">
+                                            <input type="text" id="tempatLahirSearch" autocomplete="off" class="w-full px-3 md:px-4 py-2.5 md:py-3 pr-11 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white uppercase" placeholder="Ketik Kabupaten / Kota..." inputmode="search">
+                                            <button type="button" id="btnToggleTempatLahir" class="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-blue-600 flex items-center justify-center" aria-label="Buka daftar Tempat Lahir">
+                                                <i data-lucide="chevrons-up-down" class="w-4 h-4"></i>
+                                            </button>
+                                        </div>
+                                        <div id="tempatLahirDropdown" class="hidden absolute z-30 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                                            <div id="tempatLahirOptions" class="max-h-64 overflow-y-auto overscroll-contain"></div>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-1">Ketik nama Kabupaten / Kota. Data yang disimpan hanya Kabupaten/Kota.</p></div>
                                     <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Tanggal Lahir <span class="text-red-500">*</span></label>
                                         <input required type="date" id="inputTglLahir" name="tanggalLahir" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
                                         <p id="err-tgl" class="text-red-500 text-xs mt-1 hidden font-medium">⚠️ Cek lagi tanggal lahir anda. Usia minimal 17 tahun.</p>
@@ -538,6 +551,50 @@
 
         lucide.createIcons();
 
+        function getTodayLocalDate() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function collapseExtraSpaces(value) {
+            return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : value;
+        }
+
+        function normalizeFormValueByKey(key, value) {
+            if (typeof value !== 'string') return value;
+            if (key === 'fotoBase64' || key === 'fotoUrl') return value.trim();
+            const normalized = collapseExtraSpaces(value);
+            return key === 'alamatEmail' ? normalized.toLowerCase() : normalized;
+        }
+
+        function normalizeFormPayload(data) {
+            return Object.fromEntries(
+                Object.entries(data || {}).map(([key, value]) => [key, normalizeFormValueByKey(key, value)])
+            );
+        }
+
+        function normalizeSpreadsheetRows(rows) {
+            if (!Array.isArray(rows)) return [];
+            return rows.map(row => {
+                const cleaned = {};
+                Object.entries(row || {}).forEach(([key, value]) => {
+                    cleaned[key] = normalizeFormValueByKey(key, value);
+                });
+                return cleaned;
+            });
+        }
+
+        function setDefaultAdminDate() {
+            if (filterDateEl) {
+                filterDateEl.max = getTodayLocalDate();
+                filterDateEl.value = getTodayLocalDate();
+            }
+        }
+
+
         // ----------------------------------------------------
         // SISTEM TOAST
         // ----------------------------------------------------
@@ -583,7 +640,10 @@
             renderTable();
         }
 
-        if(filterDateEl) filterDateEl.addEventListener('change', applyFilter);
+        if(filterDateEl) {
+            filterDateEl.max = getTodayLocalDate();
+            filterDateEl.addEventListener('change', applyFilter);
+        }
         if(btnClearFilter) {
             btnClearFilter.addEventListener('click', () => { 
                 if(filterDateEl) filterDateEl.value = ''; 
@@ -856,13 +916,36 @@
         }
 
         if(elEmail) {
+            elEmail.addEventListener('invalid', function() {
+                const value = collapseExtraSpaces(this.value);
+                if (value === '') {
+                    this.setCustomValidity('Alamat Email wajib diisi terlebih dahulu.');
+                    showToast('Alamat Email wajib diisi terlebih dahulu.', 'error');
+                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                    this.setCustomValidity('Format email tidak sesuai.');
+                    showToast('Format email tidak sesuai!', 'error');
+                }
+            });
+
+            elEmail.addEventListener('input', function() {
+                this.value = collapseExtraSpaces(this.value).toLowerCase();
+                this.setCustomValidity('');
+                if (this.value === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.value)) {
+                    errEmail.classList.add('hidden');
+                }
+            });
+
             elEmail.addEventListener('blur', function() {
+                const value = collapseExtraSpaces(this.value).toLowerCase();
+                this.value = value;
                 const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (this.value.length > 0 && !regex.test(this.value)) {
+                if (value.length > 0 && !regex.test(value)) {
                     errEmail.classList.remove('hidden');
+                    this.setCustomValidity('Format email tidak sesuai.');
                     setTimeout(() => this.focus(), 10);
                 } else {
                     errEmail.classList.add('hidden');
+                    this.setCustomValidity('');
                 }
             });
         }
@@ -1098,7 +1181,8 @@
                     if(btnViewForm) {
                         btnViewForm.classList.remove('bg-white', 'shadow-sm', 'text-blue-600'); btnViewForm.classList.add('text-gray-500');
                     }
-                    
+
+                    setDefaultAdminDate();
                     fetchSpreadsheetData();
                 } else {
                     showToast('Password yang Anda masukkan salah!', 'error');
@@ -1155,108 +1239,277 @@
         const elKabupaten = document.getElementById('kabupaten');
         const elKecamatan = document.getElementById('kecamatan');
         const elKelurahan = document.getElementById('kelurahan');
+        const elTempatLahir = document.getElementById('tempatLahir');
+        const elTempatLahirSearch = document.getElementById('tempatLahirSearch');
+        const elTempatLahirDropdown = document.getElementById('tempatLahirDropdown');
+        const elTempatLahirOptions = document.getElementById('tempatLahirOptions');
+        const btnToggleTempatLahir = document.getElementById('btnToggleTempatLahir');
+        let provincesCache = [];
+        let tempatLahirList = [];
+        let tempatLahirLoaded = false;
 
-        fetch('https://ibnux.github.io/data-indonesia/provinsi.json')
-            .then(res => {
-                if (!res.ok) throw new Error("Gagal mengambil data Provinsi");
-                return res.json();
-            })
-            .then(data => {
-                data.sort((a, b) => a.nama.localeCompare(b.nama));
-                data.forEach(p => {
-                    const opt = document.createElement('option');
-                    opt.value = p.nama; opt.dataset.id = p.id; opt.textContent = p.nama;
-                    if(elProvinsi) elProvinsi.appendChild(opt);
+        async function fetchJsonOrThrow(url, errorMessage) {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(errorMessage);
+            return res.json();
+        }
+
+        function appendOptions(selectEl, items, placeholder, formatter) {
+            if (!selectEl) return;
+            selectEl.innerHTML = '';
+
+            const placeholderOpt = document.createElement('option');
+            placeholderOpt.value = '';
+            placeholderOpt.textContent = placeholder;
+            selectEl.appendChild(placeholderOpt);
+
+            const fragment = document.createDocumentFragment();
+            items.forEach(item => {
+                const opt = document.createElement('option');
+                const data = formatter(item);
+                opt.value = data.value;
+                opt.textContent = data.text;
+                if (data.id) opt.dataset.id = data.id;
+                fragment.appendChild(opt);
+            });
+            selectEl.appendChild(fragment);
+        }
+
+        function clearTempatLahirSelection({ keepText = false } = {}) {
+            if (elTempatLahir) elTempatLahir.value = '';
+            if (elTempatLahirSearch) {
+                if (!keepText) elTempatLahirSearch.value = '';
+                elTempatLahirSearch.dataset.selected = 'false';
+            }
+        }
+
+        function showTempatLahirDropdown() {
+            if (elTempatLahirDropdown) elTempatLahirDropdown.classList.remove('hidden');
+        }
+
+        function hideTempatLahirDropdown() {
+            if (elTempatLahirDropdown) elTempatLahirDropdown.classList.add('hidden');
+        }
+
+        function selectTempatLahir(item) {
+            if (!item) return;
+            if (elTempatLahir) elTempatLahir.value = item.value;
+            if (elTempatLahirSearch) {
+                elTempatLahirSearch.value = item.label;
+                elTempatLahirSearch.dataset.selected = 'true';
+            }
+            hideTempatLahirDropdown();
+        }
+
+        function renderTempatLahirOptions(keyword = '') {
+            if (!elTempatLahirOptions) return;
+            const normalizedKeyword = collapseExtraSpaces(keyword).toUpperCase();
+            const filtered = tempatLahirList.filter(item => !normalizedKeyword || item.search.includes(normalizedKeyword)).slice(0, 80);
+
+            if (!filtered.length) {
+                elTempatLahirOptions.innerHTML = '<div class="px-4 py-3 text-sm text-gray-500">Kabupaten / Kota tidak ditemukan.</div>';
+                showTempatLahirDropdown();
+                return;
+            }
+
+            elTempatLahirOptions.innerHTML = filtered.map(item => `
+                <button type="button" class="w-full text-left px-4 py-3 text-sm sm:text-base hover:bg-blue-50 active:bg-blue-100 transition-colors border-b border-gray-100 last:border-b-0" data-value="${item.value}">${item.label}</button>
+            `).join('');
+            showTempatLahirDropdown();
+        }
+
+        async function loadProvinsi() {
+            try {
+                provincesCache = await fetchJsonOrThrow('https://ibnux.github.io/data-indonesia/provinsi.json', 'Gagal mengambil data Provinsi');
+                provincesCache.sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
+                appendOptions(elProvinsi, provincesCache, 'Pilih Provinsi', item => ({
+                    value: collapseExtraSpaces(item.nama).toUpperCase(),
+                    text: item.nama,
+                    id: item.id
+                }));
+            } catch (err) {
+                console.error('API Error (Provinsi):', err);
+                showToast('Gagal memuat data Provinsi dari server API.', 'error');
+            }
+        }
+
+        async function loadTempatLahirOptions() {
+            if (!elTempatLahirSearch) return;
+
+            try {
+                elTempatLahirSearch.disabled = true;
+                elTempatLahirSearch.placeholder = 'Memuat Kabupaten / Kota...';
+                if (btnToggleTempatLahir) btnToggleTempatLahir.disabled = true;
+
+                if (!provincesCache.length) {
+                    provincesCache = await fetchJsonOrThrow('https://ibnux.github.io/data-indonesia/provinsi.json', 'Gagal mengambil data Provinsi');
+                }
+
+                const kabupatenPromises = provincesCache.map(async provinsi => {
+                    try {
+                        const kabupatenList = await fetchJsonOrThrow(`https://ibnux.github.io/data-indonesia/kabupaten/${provinsi.id}.json`, 'Gagal mengambil data Kabupaten');
+                        return kabupatenList.map(item => {
+                            const namaOnly = collapseExtraSpaces(item.nama);
+                            return {
+                                id: item.id,
+                                value: namaOnly.toUpperCase(),
+                                label: namaOnly,
+                                search: namaOnly.toUpperCase()
+                            };
+                        });
+                    } catch (err) {
+                        console.warn(`Gagal memuat kabupaten untuk provinsi ${provinsi.nama}`, err);
+                        return [];
+                    }
                 });
-            })
-            .catch(err => {
-                console.error("API Error (Provinsi):", err);
-                showToast("Gagal memuat data Provinsi dari server API.", "error");
+
+                const merged = (await Promise.all(kabupatenPromises)).flat();
+                const uniqueMap = new Map();
+                merged.forEach(item => {
+                    if (!uniqueMap.has(item.value)) uniqueMap.set(item.value, item);
+                });
+                tempatLahirList = Array.from(uniqueMap.values()).sort((a, b) => a.label.localeCompare(b.label, 'id'));
+                tempatLahirLoaded = true;
+                elTempatLahirSearch.disabled = false;
+                elTempatLahirSearch.placeholder = 'Ketik Kabupaten / Kota...';
+                if (btnToggleTempatLahir) btnToggleTempatLahir.disabled = false;
+                renderTempatLahirOptions('');
+                hideTempatLahirDropdown();
+            } catch (err) {
+                console.error('API Error (Tempat Lahir):', err);
+                elTempatLahirSearch.disabled = false;
+                elTempatLahirSearch.placeholder = 'Gagal memuat Kabupaten / Kota';
+                if (btnToggleTempatLahir) btnToggleTempatLahir.disabled = true;
+                showToast('Gagal memuat daftar Tempat Lahir Kabupaten/Kota.', 'error');
+            }
+        }
+
+        loadProvinsi().then(loadTempatLahirOptions);
+
+        if (elTempatLahirSearch) {
+            elTempatLahirSearch.addEventListener('focus', () => {
+                if (tempatLahirLoaded) renderTempatLahirOptions(elTempatLahirSearch.value);
             });
 
+            elTempatLahirSearch.addEventListener('input', function() {
+                const currentValue = collapseExtraSpaces(this.value).toUpperCase();
+                const exactMatch = tempatLahirList.find(item => item.value === currentValue);
+                if (exactMatch) {
+                    if (elTempatLahir) elTempatLahir.value = exactMatch.value;
+                    this.dataset.selected = 'true';
+                } else {
+                    clearTempatLahirSelection({ keepText: true });
+                }
+                renderTempatLahirOptions(this.value);
+            });
+
+            elTempatLahirSearch.addEventListener('blur', () => {
+                setTimeout(() => {
+                    if (elTempatLahirSearch.dataset.selected !== 'true') {
+                        clearTempatLahirSelection({ keepText: true });
+                    }
+                    hideTempatLahirDropdown();
+                }, 150);
+            });
+        }
+
+        if (btnToggleTempatLahir) {
+            btnToggleTempatLahir.addEventListener('click', () => {
+                if (!tempatLahirLoaded) return;
+                const isHidden = elTempatLahirDropdown?.classList.contains('hidden');
+                if (isHidden) {
+                    renderTempatLahirOptions(elTempatLahirSearch ? elTempatLahirSearch.value : '');
+                    if (elTempatLahirSearch) elTempatLahirSearch.focus();
+                } else {
+                    hideTempatLahirDropdown();
+                }
+            });
+        }
+
+        if (elTempatLahirOptions) {
+            elTempatLahirOptions.addEventListener('click', (event) => {
+                const button = event.target.closest('button[data-value]');
+                if (!button) return;
+                const selected = tempatLahirList.find(item => item.value === button.dataset.value);
+                selectTempatLahir(selected);
+            });
+        }
+
+        document.addEventListener('click', (event) => {
+            const target = event.target;
+            if (!target.closest('#tempatLahirDropdown') && !target.closest('#tempatLahirSearch') && !target.closest('#btnToggleTempatLahir')) {
+                hideTempatLahirDropdown();
+            }
+        });
+
         if(elProvinsi) {
-            elProvinsi.addEventListener('change', function() {
-                const id = this.options[this.selectedIndex].dataset.id;
+            elProvinsi.addEventListener('change', async function() {
+                const id = this.options[this.selectedIndex]?.dataset.id;
                 if(elKabupaten) { elKabupaten.innerHTML = '<option value="">Pilih Kabupaten</option>'; elKabupaten.disabled = true; }
                 if(elKecamatan) { elKecamatan.innerHTML = '<option value="">Pilih Kecamatan</option>'; elKecamatan.disabled = true; }
                 if(elKelurahan) { elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>'; elKelurahan.disabled = true; }
 
                 if (id && elKabupaten) {
-                    fetch(`https://ibnux.github.io/data-indonesia/kabupaten/${id}.json`)
-                    .then(res => {
-                        if (!res.ok) throw new Error("Gagal mengambil data Kabupaten");
-                        return res.json();
-                    })
-                    .then(data => {
-                        data.sort((a, b) => a.nama.localeCompare(b.nama));
-                        data.forEach(p => {
-                            const opt = document.createElement('option');
-                            opt.value = p.nama; opt.dataset.id = p.id; opt.textContent = p.nama;
-                            elKabupaten.appendChild(opt);
-                        });
+                    try {
+                        const data = await fetchJsonOrThrow(`https://ibnux.github.io/data-indonesia/kabupaten/${id}.json`, 'Gagal mengambil data Kabupaten');
+                        data.sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
+                        appendOptions(elKabupaten, data, 'Pilih Kabupaten', item => ({
+                            value: collapseExtraSpaces(item.nama).toUpperCase(),
+                            text: item.nama,
+                            id: item.id
+                        }));
                         elKabupaten.disabled = false;
-                    })
-                    .catch(err => {
-                        console.error("API Error (Kabupaten):", err);
-                        showToast("Gagal memuat data Kabupaten dari server API.", "error");
-                    });
+                    } catch (err) {
+                        console.error('API Error (Kabupaten):', err);
+                        showToast('Gagal memuat data Kabupaten dari server API.', 'error');
+                    }
                 }
             });
         }
 
         if(elKabupaten) {
-            elKabupaten.addEventListener('change', function() {
-                const id = this.options[this.selectedIndex].dataset.id;
+            elKabupaten.addEventListener('change', async function() {
+                const id = this.options[this.selectedIndex]?.dataset.id;
                 if(elKecamatan) { elKecamatan.innerHTML = '<option value="">Pilih Kecamatan</option>'; elKecamatan.disabled = true; }
                 if(elKelurahan) { elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>'; elKelurahan.disabled = true; }
 
                 if (id && elKecamatan) {
-                    fetch(`https://ibnux.github.io/data-indonesia/kecamatan/${id}.json`)
-                    .then(res => {
-                        if (!res.ok) throw new Error("Gagal mengambil data Kecamatan");
-                        return res.json();
-                    })
-                    .then(data => {
-                        data.sort((a, b) => a.nama.localeCompare(b.nama));
-                        data.forEach(p => {
-                            const opt = document.createElement('option');
-                            opt.value = p.nama; opt.dataset.id = p.id; opt.textContent = p.nama;
-                            elKecamatan.appendChild(opt);
-                        });
+                    try {
+                        const data = await fetchJsonOrThrow(`https://ibnux.github.io/data-indonesia/kecamatan/${id}.json`, 'Gagal mengambil data Kecamatan');
+                        data.sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
+                        appendOptions(elKecamatan, data, 'Pilih Kecamatan', item => ({
+                            value: collapseExtraSpaces(item.nama).toUpperCase(),
+                            text: item.nama,
+                            id: item.id
+                        }));
                         elKecamatan.disabled = false;
-                    })
-                    .catch(err => {
-                        console.error("API Error (Kecamatan):", err);
-                        showToast("Gagal memuat data Kecamatan dari server API.", "error");
-                    });
+                    } catch (err) {
+                        console.error('API Error (Kecamatan):', err);
+                        showToast('Gagal memuat data Kecamatan dari server API.', 'error');
+                    }
                 }
             });
         }
 
         if(elKecamatan) {
-            elKecamatan.addEventListener('change', function() {
-                const id = this.options[this.selectedIndex].dataset.id;
+            elKecamatan.addEventListener('change', async function() {
+                const id = this.options[this.selectedIndex]?.dataset.id;
                 if(elKelurahan) { elKelurahan.innerHTML = '<option value="">Pilih Kelurahan</option>'; elKelurahan.disabled = true; }
 
                 if (id && elKelurahan) {
-                    fetch(`https://ibnux.github.io/data-indonesia/kelurahan/${id}.json`)
-                    .then(res => {
-                        if (!res.ok) throw new Error("Gagal mengambil data Kelurahan/Desa");
-                        return res.json();
-                    })
-                    .then(data => {
-                        data.sort((a, b) => a.nama.localeCompare(b.nama));
-                        data.forEach(p => {
-                            const opt = document.createElement('option');
-                            opt.value = p.nama; opt.dataset.id = p.id; opt.textContent = p.nama;
-                            elKelurahan.appendChild(opt);
-                        });
+                    try {
+                        const data = await fetchJsonOrThrow(`https://ibnux.github.io/data-indonesia/kelurahan/${id}.json`, 'Gagal mengambil data Kelurahan/Desa');
+                        data.sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
+                        appendOptions(elKelurahan, data, 'Pilih Kelurahan', item => ({
+                            value: collapseExtraSpaces(item.nama).toUpperCase(),
+                            text: item.nama,
+                            id: item.id
+                        }));
                         elKelurahan.disabled = false;
-                    })
-                    .catch(err => {
-                        console.error("API Error (Kelurahan/Desa):", err);
-                        showToast("Gagal memuat data Kelurahan dari server API.", "error");
-                    });
+                    } catch (err) {
+                        console.error('API Error (Kelurahan/Desa):', err);
+                        showToast('Gagal memuat data Kelurahan dari server API.', 'error');
+                    }
                 }
             });
         }
@@ -1307,6 +1560,12 @@
                     return;
                 }
 
+                if (!dtObjTemp.tempatLahir || !collapseExtraSpaces(dtObjTemp.tempatLahir)) {
+                    showToast('Silakan pilih Tempat Lahir dari daftar Kabupaten / Kota.', 'error');
+                    if (elTempatLahirSearch) elTempatLahirSearch.focus();
+                    return;
+                }
+
                 // Validasi WAJIB Upload Pas Foto
                 if (!fotoBase64Data) {
                     showToast("WAJIB Upload Pas Foto sebelum mengirim data!", "error");
@@ -1342,7 +1601,7 @@
                 }
 
                 const fd = new FormData(e.target);
-                const dataObj = Object.fromEntries(fd.entries());
+                const dataObj = normalizeFormPayload(Object.fromEntries(fd.entries()));
                 
                 dataObj.waktu = ""; 
 
@@ -1364,11 +1623,11 @@
                 dataObj.fotoName = fotoFileName;
 
                 // PERBAIKAN ALAMAT KABUPATEN DOUBLE
-                let textKab = dataObj.kabupaten || ""; 
+                let textKab = collapseExtraSpaces(dataObj.kabupaten || ""); 
                 // Menghapus kata 'KABUPATEN ', 'KAB. ', atau 'KAB ' di awal string wilayah
                 textKab = textKab.replace(/^(KABUPATEN|KAB\.|KAB)\s+/i, '').trim();
                 let prefixKab = (dataObj.kabupaten || "").toUpperCase().startsWith('KOTA') ? '' : 'KAB ';
-                dataObj.alamatLengkap = `${dataObj.alamatDesa} RT${dataObj.rt.replace(/'/g,'')} RW${dataObj.rw.replace(/'/g,'')} KEL ${dataObj.kelurahan} KEC ${dataObj.kecamatan} ${prefixKab}${textKab}`.toUpperCase();
+                dataObj.alamatLengkap = collapseExtraSpaces(`${dataObj.alamatDesa} RT${dataObj.rt.replace(/'/g,'')} RW${dataObj.rw.replace(/'/g,'')} KEL ${dataObj.kelurahan} KEC ${dataObj.kecamatan} ${prefixKab}${textKab}`).toUpperCase();
 
                 try {
                     const formDataParams = new URLSearchParams();
@@ -1420,7 +1679,7 @@
                     return;
                 }
                 
-                globalEmployees = data;
+                globalEmployees = normalizeSpreadsheetRows(data);
                 applyFilter(); 
                 showToast("Data berhasil disinkronisasi dengan Spreadsheet!", "success");
                 
