@@ -1341,33 +1341,33 @@
                 elTempatLahirSearch.placeholder = 'Memuat Kabupaten / Kota...';
                 if (btnToggleTempatLahir) btnToggleTempatLahir.disabled = true;
 
-                if (!provincesCache.length) {
-                    provincesCache = await fetchJsonOrThrow('https://ibnux.github.io/data-indonesia/provinsi.json', 'Gagal mengambil data Provinsi');
-                }
+                const regencies = await fetchJsonOrThrow(
+                    'https://raw.githubusercontent.com/yusufsyaifudin/wilayah-indonesia/master/data/list_of_area/regencies.json',
+                    'Gagal mengambil data Kabupaten/Kota'
+                );
 
-                const kabupatenPromises = provincesCache.map(async provinsi => {
-                    try {
-                        const kabupatenList = await fetchJsonOrThrow(`https://ibnux.github.io/data-indonesia/kabupaten/${provinsi.id}.json`, 'Gagal mengambil data Kabupaten');
-                        return kabupatenList.map(item => {
-                            const namaOnly = collapseExtraSpaces(item.nama);
-                            return {
-                                id: item.id,
-                                value: namaOnly.toUpperCase(),
-                                label: namaOnly,
-                                search: namaOnly.toUpperCase()
-                            };
+                const uniqueMap = new Map();
+                regencies.forEach(item => {
+                    const namaOnly = collapseExtraSpaces(item.name || item.regency_name || item.nama || '')
+                        .replace(/\bKABUPATEN ADMINISTRASI\b/gi, 'KABUPATEN')
+                        .replace(/\bKOTA ADMINISTRASI\b/gi, 'KOTA')
+                        .replace(/\bADMINISTRASI\b/gi, '')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+
+                    if (!namaOnly) return;
+
+                    const value = namaOnly.toUpperCase();
+                    if (!uniqueMap.has(value)) {
+                        uniqueMap.set(value, {
+                            id: item.id || item.regency_code || '',
+                            value,
+                            label: namaOnly,
+                            search: value
                         });
-                    } catch (err) {
-                        console.warn(`Gagal memuat kabupaten untuk provinsi ${provinsi.nama}`, err);
-                        return [];
                     }
                 });
 
-                const merged = (await Promise.all(kabupatenPromises)).flat();
-                const uniqueMap = new Map();
-                merged.forEach(item => {
-                    if (!uniqueMap.has(item.value)) uniqueMap.set(item.value, item);
-                });
                 tempatLahirList = Array.from(uniqueMap.values()).sort((a, b) => a.label.localeCompare(b.label, 'id'));
                 tempatLahirLoaded = true;
                 elTempatLahirSearch.disabled = false;
