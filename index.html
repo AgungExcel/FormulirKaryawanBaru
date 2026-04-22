@@ -44,6 +44,74 @@
             /* Membuat ikon putih untuk mode gelap di Admin */
             filter: invert(1);
         }
+
+        .premium-action-btn {
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.9rem;
+            border: 1px solid rgba(255,255,255,0.18);
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.14);
+        }
+        .premium-action-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(255,255,255,0.30), transparent 40%, transparent 60%, rgba(255,255,255,0.18));
+            transform: translateX(-120%);
+            transition: transform 0.75s ease;
+        }
+        .premium-action-btn:hover::before { transform: translateX(120%); }
+        .premium-icon-wrap {
+            width: 2.75rem;
+            height: 2.75rem;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 8px 18px rgba(15, 23, 42, 0.18);
+        }
+        .premium-btn-clear {
+            background: linear-gradient(135deg, #ffffff 0%, #eef2ff 48%, #dbeafe 100%);
+            color: #0f172a;
+            border-color: rgba(148, 163, 184, 0.35);
+        }
+        .premium-btn-clear:hover {
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 18px 36px rgba(100, 116, 139, 0.20);
+        }
+        .premium-btn-submit {
+            background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 38%, #7c3aed 100%);
+            color: white;
+        }
+        .premium-btn-submit:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 22px 45px rgba(37, 99, 235, 0.30);
+        }
+        .premium-btn-submit:disabled,
+        .premium-btn-clear:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .premium-btn-label {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            line-height: 1.1;
+            text-align: left;
+        }
+        .premium-btn-label small {
+            font-size: 0.72rem;
+            font-weight: 600;
+            opacity: 0.78;
+            margin-top: 0.18rem;
+            letter-spacing: 0.02em;
+        }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 flex flex-col min-h-screen overflow-x-hidden">
@@ -326,10 +394,9 @@
                                 <i data-lucide="camera" class="w-5 h-5 text-blue-600"></i> Pas Foto Resmi
                             </h2>
                             <div class="space-y-3">
-                                <label class="text-sm font-medium text-gray-700">Silakan pilih metode upload foto: <span class="text-gray-500 font-normal italic ml-1">(WAJIB)</span></label>
+                                <label class="text-sm font-medium text-gray-700">Pas Foto wajib diambil langsung dari kamera HP: <span class="text-red-500 font-bold italic ml-1">upload galeri dinonaktifkan</span></label>
                                 
                                 <input type="file" id="inputFotoKamera" accept="image/*" capture="environment" class="hidden">
-                                <input type="file" id="inputFotoGaleri" accept="image/*" class="hidden">
                                 
                                 <!-- Opsi Hapus Background AI -->
                                 <div class="flex items-center gap-3 bg-white p-3 rounded-xl border border-blue-100 shadow-sm mt-2 mb-2">
@@ -341,14 +408,14 @@
                                 </div>
 
                                 <div class="flex flex-col sm:flex-row gap-3 mt-2">
-                                    <button type="button" onclick="document.getElementById('inputFotoKamera').click()" class="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center gap-2 transition-colors text-sm font-medium shadow-sm">
-                                        <i data-lucide="camera" class="w-5 h-5"></i> Buka Kamera
-                                    </button>
-                                    <button type="button" onclick="document.getElementById('inputFotoGaleri').click()" class="flex-1 py-3 px-4 bg-slate-600 hover:bg-slate-700 text-white rounded-lg flex items-center justify-center gap-2 transition-colors text-sm font-medium shadow-sm">
-                                        <i data-lucide="image" class="w-5 h-5"></i> Pilih dari Galeri
+                                    <button type="button" onclick="document.getElementById('inputFotoKamera').click()" class="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center gap-2 transition-colors text-sm font-semibold shadow-sm">
+                                        <i data-lucide="camera" class="w-5 h-5"></i> Ambil Foto dari Kamera HP
                                     </button>
                                 </div>
                                 
+                                <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+                                    <span class="font-bold">Catatan:</span> Pas foto hanya bisa diambil langsung dari kamera perangkat. Opsi upload file / galeri sudah dinonaktifkan.
+                                </div>
                                 <p class="text-xs text-gray-500 mt-3">Sistem otomatis memotong foto menjadi rasio Pas Foto (3x4). <b>Mohon berfoto di depan dinding yang polos.</b></p>
                                 <div id="fotoPreviewContainer" class="hidden mt-4 text-center sm:text-left">
                                     <p class="text-xs font-bold text-green-600 mb-2">Hasil Foto Terunggah:</p>
@@ -358,11 +425,23 @@
                         </div>
 
                         <div class="pt-4 border-t border-gray-200 flex flex-col sm:flex-row justify-end gap-4">
-                            <button type="button" id="btnClearForm" class="w-full sm:w-auto py-3.5 md:py-4 px-8 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-lg transition-all shadow-sm">
-                                BERSIHKAN
+                            <button type="button" id="btnClearForm" class="premium-action-btn premium-btn-clear w-full sm:w-auto py-3.5 md:py-4 px-5 md:px-7 rounded-2xl font-bold text-base md:text-lg transition-all">
+                                <span class="premium-icon-wrap bg-gradient-to-br from-amber-400 via-orange-400 to-rose-500 text-white">
+                                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                                </span>
+                                <span class="premium-btn-label">
+                                    <span>BERSIHKAN</span>
+                                    <small>Reset semua isian</small>
+                                </span>
                             </button>
-                            <button type="submit" id="btnSubmit" class="w-full sm:w-auto md:min-w-[300px] py-3.5 md:py-4 px-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 tracking-wide">
-                                KIRIM DATA KARYAWAN
+                            <button type="submit" id="btnSubmit" class="premium-action-btn premium-btn-submit w-full sm:w-auto md:min-w-[320px] py-3.5 md:py-4 px-5 md:px-7 rounded-2xl font-bold text-base md:text-lg transition-all tracking-wide">
+                                <span class="premium-icon-wrap bg-white/20 text-yellow-200 border border-white/20">
+                                    <i data-lucide="send" class="w-5 h-5"></i>
+                                </span>
+                                <span class="premium-btn-label">
+                                    <span>KIRIM DATA KARYAWAN</span>
+                                    <small>Validasi & simpan ke database</small>
+                                </span>
                             </button>
                         </div>
                     </form>
@@ -548,6 +627,8 @@
 
         let globalEmployees = [];
         let filteredEmployees = []; 
+        let isSubmitting = false;
+        const FORM_SUBMIT_LOCK_KEY = 'hoplun_form_submitted_once';
 
         lucide.createIcons();
 
@@ -726,7 +807,6 @@
         let fotoFileName = "";
         
         const inputFotoKamera = document.getElementById('inputFotoKamera');
-        const inputFotoGaleri = document.getElementById('inputFotoGaleri');
         const fotoPreview = document.getElementById('fotoPreview');
         const fotoPreviewContainer = document.getElementById('fotoPreviewContainer');
 
@@ -734,13 +814,13 @@
             const file = e.target.files[0];
             if(!file) return;
             
-            if (e.target.id === 'inputFotoKamera') {
-                if(inputFotoGaleri) inputFotoGaleri.value = "";
-            } else {
-                if(inputFotoKamera) inputFotoKamera.value = "";
+            if (e.target.id !== 'inputFotoKamera') {
+                showToast("Pas foto hanya boleh diambil dari kamera HP.", "error");
+                e.target.value = "";
+                return;
             }
 
-            fotoFileName = file.name || "foto.jpg";
+            fotoFileName = file.name || "foto-kamera.jpg";
             
             const loadingOverlay = document.getElementById('loadingOverlay');
             const loadingText = document.getElementById('loadingText');
@@ -836,12 +916,10 @@
                 loadingOverlay.classList.remove('active');
                 showToast("Gagal memproses foto. Pastikan format gambar valid.", "error");
                 if(inputFotoKamera) inputFotoKamera.value = ""; 
-                if(inputFotoGaleri) inputFotoGaleri.value = ""; 
             }
         }
 
         if(inputFotoKamera) inputFotoKamera.addEventListener('change', handleFotoUpload);
-        if(inputFotoGaleri) inputFotoGaleri.addEventListener('change', handleFotoUpload);
 
         // ----------------------------------------------------
         // LOGIKA HURUF BESAR (UPPERCASE) OTOMATIS
@@ -1514,6 +1592,53 @@
             });
         }
 
+        function setSubmitButtonState(isLocked, labelPrimary = 'KIRIM DATA KARYAWAN', labelSecondary = 'Validasi & simpan ke database') {
+            const btnSubmit = document.getElementById('btnSubmit');
+            if (!btnSubmit) return;
+            btnSubmit.disabled = isLocked;
+            btnSubmit.classList.toggle('opacity-80', isLocked);
+            const label = btnSubmit.querySelector('.premium-btn-label');
+            if (label) {
+                const main = label.querySelector('span');
+                const sub = label.querySelector('small');
+                if (main) main.textContent = labelPrimary;
+                if (sub) sub.textContent = labelSecondary;
+            }
+        }
+
+        function activateSubmitLock() {
+            try {
+                localStorage.setItem(FORM_SUBMIT_LOCK_KEY, 'true');
+            } catch (err) {
+                console.warn('Gagal menyimpan status submit:', err);
+            }
+            setSubmitButtonState(true, 'SUDAH DIKIRIM', 'Form ini hanya bisa disubmit 1 kali');
+        }
+
+        function checkSubmitLockOnLoad() {
+            try {
+                if (localStorage.getItem(FORM_SUBMIT_LOCK_KEY) === 'true') {
+                    activateSubmitLock();
+                    const formContainer = document.getElementById('formContainer');
+                    if (formContainer) {
+                        const notice = document.createElement('div');
+                        notice.className = 'mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900 shadow-sm';
+                        notice.innerHTML = '<div class="flex items-start gap-3"><i data-lucide="shield-alert" class="w-5 h-5 mt-0.5 text-amber-600"></i><div><p class="font-bold">Form ini sudah pernah dikirim dari perangkat ini.</p><p class="mt-1 text-amber-800">Untuk mencegah data ganda, submit hanya diizinkan 1 kali.</p></div></div>';
+                        formContainer.querySelector('.p-4, .p-6, .p-10');
+                        const target = formContainer.querySelector('.p-4.sm\:p-6.md\:p-10') || formContainer.querySelector('[class*="md:p-10"]');
+                        if (target && !target.querySelector('.border-amber-200.bg-amber-50')) {
+                            target.insertBefore(notice, target.firstChild.nextSibling);
+                            lucide.createIcons();
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('Tidak bisa membaca status submit:', err);
+            }
+        }
+
+        checkSubmitLockOnLoad();
+
         // ----------------------------------------------------
         // LOGIKA SUBMIT FORM (MENGIRIM DATA KE SPREADSHEET)
         // ----------------------------------------------------
@@ -1521,6 +1646,18 @@
         if(formEl) {
             formEl.addEventListener('submit', async function(e) {
                 e.preventDefault();
+
+                if (isSubmitting) {
+                    showToast('Data sedang diproses. Mohon tunggu sebentar.', 'error');
+                    return;
+                }
+                try {
+                    if (localStorage.getItem(FORM_SUBMIT_LOCK_KEY) === 'true') {
+                        activateSubmitLock();
+                        showToast('Form ini sudah pernah disubmit. Submit hanya bisa 1 kali.', 'error');
+                        return;
+                    }
+                } catch (err) {}
 
                 if(elKTP && elKTP.value.length !== 16) { showToast("Pengisian Gagal! Nomor KTP Wajib 16 Digit.", "error"); elKTP.focus(); return; }
                 
@@ -1592,6 +1729,8 @@
                 }
 
                 const loadingOverlay = document.getElementById('loadingOverlay');
+                isSubmitting = true;
+                setSubmitButtonState(true, 'SEDANG DIKIRIM...', 'Mohon tunggu proses selesai');
                 if(loadingOverlay) {
                     const loadingText = document.getElementById('loadingText');
                     const loadingSubText = document.getElementById('loadingSubText');
@@ -1640,6 +1779,7 @@
                     
                     if(loadingOverlay) loadingOverlay.classList.remove('active');
                     
+                    activateSubmitLock();
                     const formContainer = document.getElementById('formContainer');
                     const successMessage = document.getElementById('successMessage');
                     if(formContainer) formContainer.classList.add('hidden');
@@ -1655,7 +1795,10 @@
 
                 } catch (err) {
                     if(loadingOverlay) loadingOverlay.classList.remove('active');
+                    setSubmitButtonState(false, 'KIRIM DATA KARYAWAN', 'Validasi & simpan ke database');
                     showToast('Gagal mengirim data. Periksa jaringan Anda.', 'error');
+                } finally {
+                    isSubmitting = false;
                 }
             });
         }
@@ -1780,6 +1923,12 @@
         const btnClearForm = document.getElementById('btnClearForm');
         if(btnClearForm) {
             btnClearForm.addEventListener('click', function() {
+                try {
+                    if (localStorage.getItem(FORM_SUBMIT_LOCK_KEY) === 'true') {
+                        showToast('Form sudah pernah disubmit, reload tidak akan membuka submit baru.', 'error');
+                        return;
+                    }
+                } catch (err) {}
                 if(confirm("Apakah Anda yakin ingin menghapus semua isian data form ini?")) {
                     window.location.reload();
                 }
