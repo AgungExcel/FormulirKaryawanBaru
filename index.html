@@ -189,18 +189,9 @@
                                         <option value="FEMALE">FEMALE (Perempuan)</option>
                                     </select></div>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 md:col-span-2">
-                                    <div class="space-y-1.5 w-full relative"><label class="text-sm font-medium text-gray-700">Tempat Lahir <span class="text-red-500">*</span></label>
-                                        <input type="hidden" id="tempatLahir" name="tempatLahir">
-                                        <div class="relative">
-                                            <input type="text" id="tempatLahirSearch" autocomplete="off" class="w-full px-3 md:px-4 py-2.5 md:py-3 pr-11 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white uppercase" placeholder="Ketik Kabupaten / Kota..." inputmode="search">
-                                            <button type="button" id="btnToggleTempatLahir" class="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-blue-600 flex items-center justify-center" aria-label="Buka daftar Tempat Lahir">
-                                                <i data-lucide="chevrons-up-down" class="w-4 h-4"></i>
-                                            </button>
-                                        </div>
-                                        <div id="tempatLahirDropdown" class="hidden absolute z-30 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
-                                            <div id="tempatLahirOptions" class="max-h-64 overflow-y-auto overscroll-contain"></div>
-                                        </div>
-                                        <p class="text-xs text-gray-500 mt-1">Ketik nama Kabupaten / Kota. Data yang disimpan hanya Kabupaten/Kota.</p></div>
+                                    <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Tempat Lahir <span class="text-red-500">*</span></label>
+                                        <input required type="text" id="tempatLahir" name="tempatLahir" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white uppercase" placeholder="Tempat Lahir Anda">
+                                        <p class="text-xs text-gray-500 mt-1">Ketik tempat lahir sesuai KTP.</p></div>
                                     <div class="space-y-1.5 w-full"><label class="text-sm font-medium text-gray-700">Tanggal Lahir <span class="text-red-500">*</span></label>
                                         <input required type="date" id="inputTglLahir" name="tanggalLahir" class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
                                         <p id="err-tgl" class="text-red-500 text-xs mt-1 hidden font-medium">⚠️ Cek lagi tanggal lahir anda. Usia minimal 17 tahun.</p>
@@ -1698,8 +1689,8 @@
                 }
 
                 if (!dtObjTemp.tempatLahir || !collapseExtraSpaces(dtObjTemp.tempatLahir)) {
-                    showToast('Silakan pilih Tempat Lahir dari daftar Kabupaten / Kota.', 'error');
-                    if (elTempatLahirSearch) elTempatLahirSearch.focus();
+                    showToast('Tempat Lahir wajib diisi secara manual.', 'error');
+                    if (elTempatLahir) elTempatLahir.focus();
                     return;
                 }
 
