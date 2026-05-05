@@ -112,6 +112,25 @@
             margin-top: 0.18rem;
             letter-spacing: 0.02em;
         }
+
+
+        /* PERBAIKAN HP: ukuran sentuh aman, mencegah zoom iOS, dan input kamera tidak memakai display:none */
+        html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+        button, input, select, textarea { font-size: 16px; touch-action: manipulation; }
+        .camera-file-input {
+            position: fixed;
+            left: -100vw;
+            top: 0;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            overflow: hidden;
+            z-index: -1;
+        }
+        @media (max-width: 640px) {
+            .premium-action-btn { width: 100%; }
+            input, select, textarea { min-height: 44px; }
+        }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 flex flex-col min-h-screen overflow-x-hidden">
@@ -387,7 +406,7 @@
                             <div class="space-y-3">
                                 <label class="text-sm font-medium text-gray-700">Pas Foto wajib diambil langsung dari kamera HP: <span class="text-red-500 font-bold italic ml-1">upload galeri dinonaktifkan</span></label>
                                 
-                                <input type="file" id="inputFotoKamera" accept="image/*" capture="environment" class="hidden">
+                                <input type="file" id="inputFotoKamera" accept="image/*" capture="user" class="camera-file-input" aria-label="Ambil pas foto dari kamera HP">
                                 
                                 <!-- Opsi Hapus Background AI -->
                                 <div class="flex items-center gap-3 bg-white p-3 rounded-xl border border-blue-100 shadow-sm mt-2 mb-2">
@@ -399,13 +418,16 @@
                                 </div>
 
                                 <div class="flex flex-col sm:flex-row gap-3 mt-2">
-                                    <button type="button" onclick="document.getElementById('inputFotoKamera').click()" class="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center gap-2 transition-colors text-sm font-semibold shadow-sm">
-                                        <i data-lucide="camera" class="w-5 h-5"></i> Ambil Foto dari Kamera HP
+                                    <button type="button" id="btnOpenCameraFront" class="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center gap-2 transition-colors text-sm font-semibold shadow-sm">
+                                        <i data-lucide="camera" class="w-5 h-5"></i> Kamera Depan
+                                    </button>
+                                    <button type="button" id="btnOpenCameraBack" class="flex-1 py-3 px-4 bg-sky-600 hover:bg-sky-700 text-white rounded-xl flex items-center justify-center gap-2 transition-colors text-sm font-semibold shadow-sm">
+                                        <i data-lucide="refresh-cw" class="w-5 h-5"></i> Kamera Belakang
                                     </button>
                                 </div>
                                 
                                 <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
-                                    <span class="font-bold">Catatan:</span> Pas foto hanya bisa diambil langsung dari kamera perangkat. Opsi upload file / galeri sudah dinonaktifkan.
+                                    <span class="font-bold">Catatan:</span> Gunakan tombol kamera depan/belakang sesuai HP. Pada sebagian browser, sistem HP masih bisa menampilkan pilihan galeri karena batasan browser; pilih Kamera untuk memenuhi aturan.
                                 </div>
                                 <p class="text-xs text-gray-500 mt-3">Sistem otomatis memotong foto menjadi rasio Pas Foto (3x4). <b>Mohon berfoto di depan dinding yang polos.</b></p>
                                 <div id="fotoPreviewContainer" class="hidden mt-4 text-center sm:text-left">
@@ -619,7 +641,7 @@
         let globalEmployees = [];
         let filteredEmployees = []; 
         let isSubmitting = false;
-        const FORM_SUBMIT_LOCK_KEY = 'hoplun_form_submitted_once';
+        const DUPLICATE_NAME_CHECK_TIMEOUT_MS = 30000;
 
         lucide.createIcons();
 
@@ -657,6 +679,56 @@
                 });
                 return cleaned;
             });
+        }
+
+        function normalizeNameForDuplicate(value) {
+            return collapseExtraSpaces(String(value || ''))
+                .toUpperCase()
+                .normalize('NFKC')
+                .replace(/[0-9]/g, '')
+                .replace(/[.,;:()\[\]{}]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        async function fetchWithTimeout(url, options = {}, timeoutMs = DUPLICATE_NAME_CHECK_TIMEOUT_MS) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                return await fetch(url, {
+                    cache: 'no-store',
+                    ...options,
+                    signal: controller.signal
+                });
+            } finally {
+                clearTimeout(timer);
+            }
+        }
+
+        async function fetchExistingSubmissionsForDuplicate() {
+            const separator = GOOGLE_SCRIPT_URL.includes('?') ? '&' : '?';
+            const response = await fetchWithTimeout(`${GOOGLE_SCRIPT_URL}${separator}_=${Date.now()}`, { method: 'GET' });
+            const data = await response.json();
+            if (data && data.error) throw new Error(data.error);
+            return normalizeSpreadsheetRows(data);
+        }
+
+        async function assertNameNotAlreadySubmitted(namaLengkap) {
+            const currentName = normalizeNameForDuplicate(namaLengkap);
+            if (!currentName) {
+                const err = new Error('Nama lengkap wajib diisi.');
+                err.code = 'EMPTY_NAME';
+                throw err;
+            }
+
+            const rows = await fetchExistingSubmissionsForDuplicate();
+            const duplicate = rows.find(row => normalizeNameForDuplicate(row.namaLengkap) === currentName);
+            if (duplicate) {
+                const err = new Error('Nama ini sudah pernah submit.');
+                err.code = 'DUPLICATE_NAME';
+                err.duplicateName = duplicate.namaLengkap || namaLengkap;
+                throw err;
+            }
         }
 
         function setDefaultAdminDate() {
@@ -800,6 +872,24 @@
         const inputFotoKamera = document.getElementById('inputFotoKamera');
         const fotoPreview = document.getElementById('fotoPreview');
         const fotoPreviewContainer = document.getElementById('fotoPreviewContainer');
+
+        const btnOpenCameraFront = document.getElementById('btnOpenCameraFront');
+        const btnOpenCameraBack = document.getElementById('btnOpenCameraBack');
+
+        function openCameraInput(mode = 'user') {
+            if (!inputFotoKamera) return;
+            try {
+                inputFotoKamera.value = '';
+                inputFotoKamera.setAttribute('accept', 'image/*');
+                inputFotoKamera.setAttribute('capture', mode);
+                inputFotoKamera.click();
+            } catch (err) {
+                showToast('Kamera tidak bisa dibuka otomatis. Coba tombol kamera lainnya.', 'error');
+            }
+        }
+
+        if (btnOpenCameraFront) btnOpenCameraFront.addEventListener('click', () => openCameraInput('user'));
+        if (btnOpenCameraBack) btnOpenCameraBack.addEventListener('click', () => openCameraInput('environment'));
 
         async function handleFotoUpload(e) {
             const file = e.target.files[0];
@@ -1598,37 +1688,8 @@
         }
 
         function activateSubmitLock() {
-            try {
-                localStorage.setItem(FORM_SUBMIT_LOCK_KEY, 'true');
-            } catch (err) {
-                console.warn('Gagal menyimpan status submit:', err);
-            }
-            setSubmitButtonState(true, 'SUDAH DIKIRIM', 'Form ini hanya bisa disubmit 1 kali');
+            setSubmitButtonState(true, 'SUDAH DIKIRIM', 'Nama ini sudah tersimpan di database');
         }
-
-        function checkSubmitLockOnLoad() {
-            try {
-                if (localStorage.getItem(FORM_SUBMIT_LOCK_KEY) === 'true') {
-                    activateSubmitLock();
-                    const formContainer = document.getElementById('formContainer');
-                    if (formContainer) {
-                        const notice = document.createElement('div');
-                        notice.className = 'mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900 shadow-sm';
-                        notice.innerHTML = '<div class="flex items-start gap-3"><i data-lucide="shield-alert" class="w-5 h-5 mt-0.5 text-amber-600"></i><div><p class="font-bold">Form ini sudah pernah dikirim dari perangkat ini.</p><p class="mt-1 text-amber-800">Untuk mencegah data ganda, submit hanya diizinkan 1 kali.</p></div></div>';
-                        formContainer.querySelector('.p-4, .p-6, .p-10');
-                        const target = formContainer.querySelector('.p-4.sm\:p-6.md\:p-10') || formContainer.querySelector('[class*="md:p-10"]');
-                        if (target && !target.querySelector('.border-amber-200.bg-amber-50')) {
-                            target.insertBefore(notice, target.firstChild.nextSibling);
-                            lucide.createIcons();
-                        }
-                    }
-                }
-            } catch (err) {
-                console.warn('Tidak bisa membaca status submit:', err);
-            }
-        }
-
-        checkSubmitLockOnLoad();
 
         // ----------------------------------------------------
         // LOGIKA SUBMIT FORM (MENGIRIM DATA KE SPREADSHEET)
@@ -1642,14 +1703,6 @@
                     showToast('Data sedang diproses. Mohon tunggu sebentar.', 'error');
                     return;
                 }
-                try {
-                    if (localStorage.getItem(FORM_SUBMIT_LOCK_KEY) === 'true') {
-                        activateSubmitLock();
-                        showToast('Form ini sudah pernah disubmit. Submit hanya bisa 1 kali.', 'error');
-                        return;
-                    }
-                } catch (err) {}
-
                 if(elKTP && elKTP.value.length !== 16) { showToast("Pengisian Gagal! Nomor KTP Wajib 16 Digit.", "error"); elKTP.focus(); return; }
                 
                 // VALIDASI EMAIL WAJIB
@@ -1760,13 +1813,22 @@
                 dataObj.alamatLengkap = collapseExtraSpaces(`${dataObj.alamatDesa} RT${dataObj.rt.replace(/'/g,'')} RW${dataObj.rw.replace(/'/g,'')} KEL ${dataObj.kelurahan} KEC ${dataObj.kecamatan} ${prefixKab}${textKab}`).toUpperCase();
 
                 try {
+                    const loadingSubText = document.getElementById('loadingSubText');
+                    if(loadingSubText) loadingSubText.textContent = "Mengecek apakah nama sudah pernah submit...";
+                    await assertNameNotAlreadySubmitted(dataObj.namaLengkap);
+
+                    if(loadingSubText) loadingSubText.textContent = "Mengirim data ke Spreadsheet. Mohon tunggu...";
                     const formDataParams = new URLSearchParams();
                     formDataParams.append("data", JSON.stringify(dataObj));
 
-                    await fetch(GOOGLE_SCRIPT_URL, {
-                        method: 'POST', 
+                    const submitResponse = await fetchWithTimeout(GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
                         body: formDataParams
-                    });
+                    }, 60000);
+
+                    if (submitResponse && submitResponse.ok === false) {
+                        throw new Error('Server menolak pengiriman data.');
+                    }
                     
                     if(loadingOverlay) loadingOverlay.classList.remove('active');
                     
@@ -1787,7 +1849,18 @@
                 } catch (err) {
                     if(loadingOverlay) loadingOverlay.classList.remove('active');
                     setSubmitButtonState(false, 'KIRIM DATA KARYAWAN', 'Validasi & simpan ke database');
-                    showToast('Gagal mengirim data. Periksa jaringan Anda.', 'error');
+                    if (err && err.code === 'DUPLICATE_NAME') {
+                        showToast(`Nama ${err.duplicateName || dataObj.namaLengkap} sudah pernah submit. 1 orang hanya bisa 1 kali.`, 'error');
+                        if(elNamaLengkap) {
+                            elNamaLengkap.classList.add('border-red-500', 'text-red-600');
+                            elNamaLengkap.focus();
+                        }
+                    } else if (err && err.name === 'AbortError') {
+                        showToast('Koneksi terlalu lama. Coba lagi dengan jaringan yang lebih stabil.', 'error');
+                    } else {
+                        console.error('Submit Error:', err);
+                        showToast('Gagal mengirim data atau mengecek nama. Periksa jaringan Anda.', 'error');
+                    }
                 } finally {
                     isSubmitting = false;
                 }
@@ -1804,7 +1877,7 @@
             if(tbody) tbody.innerHTML = '<tr><td colspan="37" class="px-6 py-12 text-center text-blue-600"><div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mx-auto mb-2"></div>Menarik data dari Spreadsheet... Mohon tunggu.</td></tr>';
             
             try {
-                const response = await fetch(GOOGLE_SCRIPT_URL);
+                const response = await fetchWithTimeout(GOOGLE_SCRIPT_URL, { method: 'GET' }, 60000);
                 const data = await response.json();
                 
                 if(data.error) {
@@ -1914,12 +1987,6 @@
         const btnClearForm = document.getElementById('btnClearForm');
         if(btnClearForm) {
             btnClearForm.addEventListener('click', function() {
-                try {
-                    if (localStorage.getItem(FORM_SUBMIT_LOCK_KEY) === 'true') {
-                        showToast('Form sudah pernah disubmit, reload tidak akan membuka submit baru.', 'error');
-                        return;
-                    }
-                } catch (err) {}
                 if(confirm("Apakah Anda yakin ingin menghapus semua isian data form ini?")) {
                     window.location.reload();
                 }
