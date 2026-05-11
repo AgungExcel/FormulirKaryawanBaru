@@ -464,7 +464,7 @@
 
         <!-- VIEW 2: DATABASE ADMIN -->
         <div id="viewAdmin" class="hidden fade-in bg-white rounded-2xl shadow-xl overflow-hidden w-full mx-auto border border-gray-100 flex-col my-2">
-            <div class="bg-slate-800 p-3 md:p-4 flex flex-col gap-3 text-white">
+            <div class="bg-slate-800 p-4 md:p-6 flex flex-col gap-4 text-white">
                 <div class="flex flex-col sm:flex-row justify-between w-full items-start sm:items-center gap-4">
                     <div>
                         <h1 class="text-xl md:text-2xl font-bold flex items-center gap-2">
@@ -481,8 +481,9 @@
                     </div>
                 </div>
 
-                <!-- PANEL ADMIN RINGKAS TANPA RUANG KOSONG -->
-                <div class="w-full bg-slate-700/45 border border-slate-600 rounded-xl p-2.5 shadow-inner">
+                <!-- PANEL ADMIN RINGKAS: TOMBOL SELARAS DENGAN TANGGAL CUSTOM -->
+                <div class="w-full bg-slate-700/45 border border-slate-600 rounded-xl p-2.5 shadow-inner space-y-2.5">
+                    <!-- Ringkasan + filter tampilan tabel -->
                     <div class="flex flex-wrap items-end gap-2">
                         <div class="bg-slate-800/70 border border-slate-600 rounded-lg px-3 py-2 min-w-[118px]">
                             <p class="text-[10px] uppercase tracking-wide text-slate-400 leading-none">Semua Data</p>
@@ -503,35 +504,57 @@
 
                         <div class="flex-1"></div>
 
-                        <label class="flex flex-col gap-1 text-[10px] font-semibold text-slate-300">Filter Submit
-                            <input type="date" id="filterDate" class="h-8 px-2 border border-slate-500 bg-slate-900 text-white rounded-md text-xs outline-none focus:ring-2 focus:ring-blue-400 w-[135px]">
-                        </label>
-                        <button id="btnClearFilter" class="h-8 px-2.5 bg-slate-600 text-slate-100 rounded-md text-xs hover:bg-slate-500 transition-colors">Reset</button>
+                        <div class="flex flex-wrap items-end gap-2 bg-slate-800/40 border border-slate-600 rounded-lg p-2">
+                            <label class="flex flex-col gap-1 text-[10px] font-semibold text-slate-300">Filter Submit
+                                <input type="date" id="filterDate" class="h-8 px-2 border border-slate-500 bg-slate-900 text-white rounded-md text-xs outline-none focus:ring-2 focus:ring-blue-400 w-[135px]">
+                            </label>
+                            <button id="btnClearFilter" class="h-8 px-2.5 bg-slate-600 text-slate-100 rounded-md text-xs hover:bg-slate-500 transition-colors">Reset</button>
+                        </div>
                     </div>
 
-                    <div class="flex flex-wrap items-end gap-2 mt-2">
-                        <span class="text-xs text-slate-300 mr-auto" id="filterStatus">Menampilkan semua data</span>
-                        <label class="flex flex-col gap-1 text-[10px] font-semibold text-emerald-200">Export Dari
-                            <input type="date" id="exportDateFrom" class="h-8 px-2 border border-slate-500 bg-slate-900 text-white rounded-md text-xs outline-none focus:ring-2 focus:ring-emerald-400 w-[135px]">
-                        </label>
-                        <label class="flex flex-col gap-1 text-[10px] font-semibold text-emerald-200">Export Sampai
-                            <input type="date" id="exportDateTo" class="h-8 px-2 border border-slate-500 bg-slate-900 text-white rounded-md text-xs outline-none focus:ring-2 focus:ring-emerald-400 w-[135px]">
-                        </label>
-                        <label class="flex flex-col gap-1 text-[10px] font-semibold text-indigo-200">Foto Dari
-                            <input type="date" id="photoDateFrom" class="h-8 px-2 border border-slate-500 bg-slate-900 text-white rounded-md text-xs outline-none focus:ring-2 focus:ring-indigo-400 w-[135px]">
-                        </label>
-                        <label class="flex flex-col gap-1 text-[10px] font-semibold text-indigo-200">Foto Sampai
-                            <input type="date" id="photoDateTo" class="h-8 px-2 border border-slate-500 bg-slate-900 text-white rounded-md text-xs outline-none focus:ring-2 focus:ring-indigo-400 w-[135px]">
-                        </label>
+                    <!-- Aksi admin: setiap tombol ditempatkan dekat dengan tanggal yang dipakai -->
+                    <div class="grid grid-cols-1 xl:grid-cols-[auto_auto_1fr_1fr] gap-2 items-stretch">
+                        <div class="bg-slate-800/40 border border-slate-600 rounded-lg p-2 flex flex-wrap items-end gap-1.5">
+                            <button id="btnOpenChangePwd" class="h-8 px-2.5 bg-amber-600 hover:bg-amber-500 rounded-md flex items-center gap-1.5 transition-colors text-xs font-medium shadow">
+                                <i data-lucide="key" class="w-3.5 h-3.5"></i> Sandi
+                            </button>
+                            <button id="btnShareQR" class="h-8 px-2.5 bg-slate-700 hover:bg-slate-600 rounded-md flex items-center gap-1.5 transition-colors text-xs font-medium shadow">
+                                <i data-lucide="qr-code" class="w-3.5 h-3.5"></i> QR Form
+                            </button>
+                        </div>
+
+                        <div class="bg-blue-950/30 border border-blue-500/30 rounded-lg p-2 flex items-end">
+                            <button id="btnSyncSheet" class="h-8 px-3 bg-blue-600 hover:bg-blue-500 rounded-md flex items-center gap-1.5 transition-colors text-xs font-medium shadow text-white whitespace-nowrap">
+                                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Tarik Data
+                            </button>
+                        </div>
+
+                        <div class="bg-emerald-950/30 border border-emerald-500/30 rounded-lg p-2 flex flex-wrap items-end gap-2">
+                            <label class="flex flex-col gap-1 text-[10px] font-semibold text-emerald-200">Export Dari
+                                <input type="date" id="exportDateFrom" class="h-8 px-2 border border-slate-500 bg-slate-900 text-white rounded-md text-xs outline-none focus:ring-2 focus:ring-emerald-400 w-[135px]">
+                            </label>
+                            <label class="flex flex-col gap-1 text-[10px] font-semibold text-emerald-200">Export Sampai
+                                <input type="date" id="exportDateTo" class="h-8 px-2 border border-slate-500 bg-slate-900 text-white rounded-md text-xs outline-none focus:ring-2 focus:ring-emerald-400 w-[135px]">
+                            </label>
+                            <button id="btnExportExcel" class="h-8 px-3 bg-emerald-600 hover:bg-emerald-500 rounded-md flex items-center gap-1.5 transition-colors text-xs font-medium shadow whitespace-nowrap">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i> Export Excel
+                            </button>
+                        </div>
+
+                        <div class="bg-indigo-950/30 border border-indigo-500/30 rounded-lg p-2 flex flex-wrap items-end gap-2">
+                            <label class="flex flex-col gap-1 text-[10px] font-semibold text-indigo-200">Foto Dari
+                                <input type="date" id="photoDateFrom" class="h-8 px-2 border border-slate-500 bg-slate-900 text-white rounded-md text-xs outline-none focus:ring-2 focus:ring-indigo-400 w-[135px]">
+                            </label>
+                            <label class="flex flex-col gap-1 text-[10px] font-semibold text-indigo-200">Foto Sampai
+                                <input type="date" id="photoDateTo" class="h-8 px-2 border border-slate-500 bg-slate-900 text-white rounded-md text-xs outline-none focus:ring-2 focus:ring-indigo-400 w-[135px]">
+                            </label>
+                            <button id="btnDownloadPhotos" class="h-8 px-3 bg-indigo-600 hover:bg-indigo-500 rounded-md flex items-center gap-1.5 transition-colors text-xs font-medium shadow text-white whitespace-nowrap">
+                                <i data-lucide="images" class="w-3.5 h-3.5"></i> Download Foto
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="flex flex-wrap items-center gap-1.5 justify-end mt-2">
-                        <button id="btnOpenChangePwd" class="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-500 rounded-md flex items-center gap-1.5 transition-colors text-xs font-medium shadow"><i data-lucide="key" class="w-3.5 h-3.5"></i> Sandi</button>
-                        <button id="btnShareQR" class="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-md flex items-center gap-1.5 transition-colors text-xs font-medium shadow"><i data-lucide="qr-code" class="w-3.5 h-3.5"></i> QR Form</button>
-                        <button id="btnSyncSheet" class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 rounded-md flex items-center gap-1.5 transition-colors text-xs font-medium shadow text-white"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Tarik Data</button>
-                        <button id="btnExportExcel" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded-md flex items-center gap-1.5 transition-colors text-xs font-medium shadow"><i data-lucide="download" class="w-3.5 h-3.5"></i> Export Excel</button>
-                        <button id="btnDownloadPhotos" class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-md flex items-center gap-1.5 transition-colors text-xs font-medium shadow text-white"><i data-lucide="images" class="w-3.5 h-3.5"></i> Download Foto</button>
-                    </div>
+                    <div class="text-xs text-slate-300" id="filterStatus">Menampilkan semua data</div>
                 </div>
                 </div>
             </div>
@@ -556,7 +579,6 @@
                             <th class="px-4 py-3 font-semibold">Alamat Email</th>
                             <th class="px-4 py-3 font-semibold">No Handphone</th>
                             <th class="px-4 py-3 font-semibold">Nomor KTP</th>
-                            <th class="px-4 py-3 font-semibold">Cek NIK Pernah Kerja</th>
                             <th class="px-4 py-3 font-semibold">Provinsi</th>
                             <th class="px-4 py-3 font-semibold">Kabupaten</th>
                             <th class="px-4 py-3 font-semibold">Kecamatan</th>
@@ -581,7 +603,7 @@
                         </tr>
                     </thead>
                     <tbody id="tableBody" class="divide-y divide-gray-200 bg-white">
-                        <tr><td colspan="38" class="px-6 py-12 text-center text-gray-500">Klik "Tarik Data (Sync)" untuk memuat data dari Spreadsheet.</td></tr>
+                        <tr><td colspan="37" class="px-6 py-12 text-center text-gray-500">Klik "Tarik Data (Sync)" untuk memuat data dari Spreadsheet.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -664,9 +686,6 @@
     <script>
         // MENGGUNAKAN LINK DEPLOY ANDA
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfB9VMrfEo7r5Dmz6G7zSx6bMf5KKVgsDotFhWvh1UEeWkcQyQS5YGuhli-XujVfwUig/exec";
-        const OLD_EMPLOYEE_SHEET_ID = "176jG2q02uaZUpdz7ZHQMnuCrIJ6FFPqW";
-        const OLD_EMPLOYEE_SHEET_GVIZ_URL = `https://docs.google.com/spreadsheets/d/${OLD_EMPLOYEE_SHEET_ID}/gviz/tq?tqx=out:json&headers=1`;
-        const OLD_EMPLOYEE_SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${OLD_EMPLOYEE_SHEET_ID}/export?format=csv&gid=0`;
 
         let globalEmployees = [];
         let filteredEmployees = []; 
@@ -721,100 +740,6 @@
                 .trim();
         }
 
-        function normalizeNik16(value) {
-            const digits = String(value || '').replace(/\D/g, '');
-            const match16 = digits.match(/\d{16}/);
-            return match16 ? match16[0] : digits;
-        }
-        function normalizeHeaderKey(value) {
-            return String(value || '').toUpperCase().normalize('NFKC').replace(/[^A-Z0-9]/g, '');
-        }
-        function getOldEmployeeValue(row, headerCandidates = [], fallbackIndexes = []) {
-            const normalizedCandidates = headerCandidates.map(normalizeHeaderKey);
-            for (const [key, value] of Object.entries(row || {})) {
-                if (key === '__values') continue;
-                const normalizedKey = normalizeHeaderKey(key);
-                if (normalizedCandidates.some(candidate => normalizedKey.includes(candidate) || candidate.includes(normalizedKey))) return collapseExtraSpaces(value || '');
-            }
-            for (const index of fallbackIndexes) {
-                const value = row && row.__values ? row.__values[index] : '';
-                if (value !== undefined && value !== null && String(value).trim() !== '') return collapseExtraSpaces(value);
-            }
-            return '';
-        }
-        function parseGvizRows(text) {
-            const jsonStart = text.indexOf('{');
-            const jsonEnd = text.lastIndexOf('}');
-            if (jsonStart === -1 || jsonEnd === -1) throw new Error('Format GViz tidak valid');
-            const json = JSON.parse(text.slice(jsonStart, jsonEnd + 1));
-            const cols = (json.table && json.table.cols ? json.table.cols : []).map((col, index) => collapseExtraSpaces(col.label || col.id || `Kolom_${index + 1}`));
-            return (json.table && json.table.rows ? json.table.rows : []).map(row => {
-                const obj = { __values: [] };
-                (row.c || []).forEach((cell, index) => {
-                    const value = cell ? (cell.f !== undefined ? cell.f : cell.v) : '';
-                    obj.__values[index] = value === null || value === undefined ? '' : String(value);
-                    obj[cols[index] || `Kolom_${index + 1}`] = obj.__values[index];
-                });
-                return obj;
-            });
-        }
-        function parseCsvRows(csvText) {
-            const rows = [];
-            let current = [], field = '', inQuotes = false;
-            for (let i = 0; i < csvText.length; i++) {
-                const ch = csvText[i], next = csvText[i + 1];
-                if (ch === '"') {
-                    if (inQuotes && next === '"') { field += '"'; i++; } else inQuotes = !inQuotes;
-                } else if (ch === ',' && !inQuotes) { current.push(field); field = '';
-                } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
-                    if (ch === '\r' && next === '\n') i++;
-                    current.push(field);
-                    if (current.some(v => String(v).trim() !== '')) rows.push(current);
-                    current = []; field = '';
-                } else field += ch;
-            }
-            current.push(field);
-            if (current.some(v => String(v).trim() !== '')) rows.push(current);
-            if (!rows.length) return [];
-            const headers = rows[0].map((h, index) => collapseExtraSpaces(h || `Kolom_${index + 1}`));
-            return rows.slice(1).map(values => {
-                const obj = { __values: values };
-                headers.forEach((header, index) => { obj[header] = values[index] || ''; });
-                return obj;
-            });
-        }
-        async function fetchOldEmployeeRows() {
-            try {
-                const response = await fetchWithTimeout(`${OLD_EMPLOYEE_SHEET_GVIZ_URL}&_=${Date.now()}`, { method: 'GET' }, 45000);
-                if (!response.ok) throw new Error('GViz tidak bisa dibaca');
-                return parseGvizRows(await response.text());
-            } catch (gvizErr) {
-                console.warn('Cek NIK via GViz gagal, mencoba CSV:', gvizErr);
-                const response = await fetchWithTimeout(`${OLD_EMPLOYEE_SHEET_CSV_URL}&_=${Date.now()}`, { method: 'GET' }, 45000);
-                if (!response.ok) throw new Error('CSV referensi tidak bisa dibaca');
-                return parseCsvRows(await response.text());
-            }
-        }
-        async function buildRiwayatKerjaByNik(nikValue) {
-            const nik = normalizeNik16(nikValue);
-            if (nik.length !== 16) return 'NIK tidak valid untuk dicek';
-            try {
-                const rows = await fetchOldEmployeeRows();
-                const matches = rows.filter(row => normalizeNik16(getOldEmployeeValue(row, ['ID CARD / KTP NO', 'ID CARD KTP NO', 'KTP NO', 'NIK', 'NO KTP'], [26])) === nik);
-                if (!matches.length) return 'Belum pernah kerja disini';
-                const details = matches.map((row, index) => {
-                    const noId = getOldEmployeeValue(row, ['NO ID', 'NOMOR ID', 'EMPLOYEE ID', 'ID KARYAWAN', 'ID'], [0, 1, 2]) || '-';
-                    const section = getOldEmployeeValue(row, ['SECTION', 'SECT', 'BAGIAN', 'DEPARTMENT', 'DEPT'], [5, 6, 7, 8]) || '-';
-                    const joinDate = getOldEmployeeValue(row, ['JOIN DATE', 'JOINDATE', 'TGL JOIN', 'TANGGAL JOIN', 'DATE JOIN', 'MULAI KERJA'], [9, 10, 11, 12]) || '-';
-                    return `${index + 1}. No ID: ${noId}, Section: ${section}, Join Date: ${joinDate}`;
-                });
-                return `Pernah Kerja disini dengan ${details.join(' | ')}`;
-            } catch (err) {
-                console.error('Cek NIK karyawan lama gagal:', err);
-                return 'Gagal cek riwayat kerja dari file referensi';
-            }
-        }
-
         async function fetchWithTimeout(url, options = {}, timeoutMs = DUPLICATE_NAME_CHECK_TIMEOUT_MS) {
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -856,8 +781,10 @@
         }
 
         function setDefaultAdminDate() {
-            if (filterDateEl) filterDateEl.value = getTodayLocalDate();
-            setDefaultCustomAdminDates();
+            if (filterDateEl) {
+                filterDateEl.max = getTodayLocalDate();
+                filterDateEl.value = getTodayLocalDate();
+            }
         }
 
 
@@ -885,94 +812,24 @@
         const filterDateEl = document.getElementById('filterDate');
         const btnClearFilter = document.getElementById('btnClearFilter');
         const filterStatus = document.getElementById('filterStatus');
-        const exportDateFromEl = document.getElementById('exportDateFrom');
-        const exportDateToEl = document.getElementById('exportDateTo');
-        const photoDateFromEl = document.getElementById('photoDateFrom');
-        const photoDateToEl = document.getElementById('photoDateTo');
-        const MONTHS_ID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
-
-        function dateInputToSubmitPrefix(dateInputValue) {
-            if(!dateInputValue) return '';
-            const [y, month, day] = dateInputValue.split('-').map(Number);
-            if(!y || !month || !day) return '';
-            return `${String(day).padStart(2, '0')}-${MONTHS_ID[month - 1]}-${y}`;
-        }
-        function dateInputToLocalDate(dateInputValue) {
-            if(!dateInputValue) return null;
-            const [y, month, day] = dateInputValue.split('-').map(Number);
-            if(!y || !month || !day) return null;
-            return new Date(y, month - 1, day);
-        }
-        function submitTimeToLocalDate(value) {
-            const match = String(value || '').match(/^(\d{2})-([A-Za-z]{3})-(\d{4})/);
-            if(!match) return null;
-            const day = Number(match[1]);
-            const monthIndex = MONTHS_ID.indexOf(match[2]);
-            const year = Number(match[3]);
-            if(monthIndex < 0 || !year) return null;
-            return new Date(year, monthIndex, day);
-        }
-        function normalizeDateRange(fromValue, toValue) {
-            let fromDate = dateInputToLocalDate(fromValue || getTodayLocalDate());
-            let toDate = dateInputToLocalDate(toValue || fromValue || getTodayLocalDate());
-            if(fromDate && toDate && fromDate > toDate) [fromDate, toDate] = [toDate, fromDate];
-            return { fromDate, toDate };
-        }
-        function rangeLabel(fromValue, toValue) {
-            const fromLabel = dateInputToSubmitPrefix(fromValue || getTodayLocalDate());
-            const toLabel = dateInputToSubmitPrefix(toValue || fromValue || getTodayLocalDate());
-            return fromLabel === toLabel ? fromLabel : `${fromLabel}_sampai_${toLabel}`;
-        }
-        function getEmployeesByDateInput(dateInputValue) {
-            const prefix = dateInputToSubmitPrefix(dateInputValue);
-            if(!prefix) return [...globalEmployees];
-            return globalEmployees.filter(emp => emp.waktu && String(emp.waktu).startsWith(prefix));
-        }
-        function getEmployeesByDateRange(fromValue, toValue) {
-            const { fromDate, toDate } = normalizeDateRange(fromValue, toValue);
-            if(!fromDate || !toDate) return [...globalEmployees];
-            return globalEmployees.filter(emp => {
-                const empDate = submitTimeToLocalDate(emp.waktu);
-                return empDate && empDate >= fromDate && empDate <= toDate;
-            });
-        }
-        function hasValidPhoto(emp) {
-            return !!(emp && emp.fotoUrl && String(emp.fotoUrl).includes('/d/'));
-        }
-        function isOldNikMatch(emp) {
-            const value = String((emp && emp.riwayatKerjaSebelumnya) || '').toLowerCase();
-            return value.includes('pernah kerja disini');
-        }
-        function updateAdminSummary() {
-            const todayEmployees = getEmployeesByDateInput(getTodayLocalDate());
-            const totalAll = globalEmployees.length;
-            const totalToday = todayEmployees.length;
-            const totalTodayPhoto = todayEmployees.filter(hasValidPhoto).length;
-            const totalOldNik = globalEmployees.filter(isOldNikMatch).length;
-            const elAll = document.getElementById('adminTotalAll');
-            const elToday = document.getElementById('adminTotalToday');
-            const elTodayPhoto = document.getElementById('adminTotalTodayPhoto');
-            const elOldNik = document.getElementById('adminTotalOldNik');
-            if(elAll) elAll.textContent = totalAll;
-            if(elToday) elToday.textContent = totalToday;
-            if(elTodayPhoto) elTodayPhoto.textContent = totalTodayPhoto;
-            if(elOldNik) elOldNik.textContent = totalOldNik;
-        }
-        function setDefaultCustomAdminDates() {
-            const today = getTodayLocalDate();
-            [exportDateFromEl, exportDateToEl, photoDateFromEl, photoDateToEl].forEach(el => { if(el && !el.value) el.value = today; });
-        }
 
         function applyFilter() {
             if(!filterDateEl || !filterDateEl.value) {
                 filteredEmployees = [...globalEmployees];
                 if(filterStatus) filterStatus.textContent = `Menampilkan semua data (${filteredEmployees.length})`;
             } else {
-                const targetDateStr = dateInputToSubmitPrefix(filterDateEl.value);
-                filteredEmployees = getEmployeesByDateInput(filterDateEl.value);
+                const selectedDate = new Date(filterDateEl.value);
+                const d = ('0' + selectedDate.getDate()).slice(-2);
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+                const m = months[selectedDate.getMonth()];
+                const y = selectedDate.getFullYear();
+                
+                // Format tanggal di data kita adalah "DD-MMM-YYYY HH:MM:SS"
+                const targetDateStr = `${d}-${m}-${y}`; 
+                
+                filteredEmployees = globalEmployees.filter(emp => emp.waktu && emp.waktu.startsWith(targetDateStr));
                 if(filterStatus) filterStatus.textContent = `Data tanggal ${targetDateStr} (${filteredEmployees.length})`;
             }
-            updateAdminSummary();
             renderTable();
         }
 
@@ -2009,9 +1866,6 @@
                     if(loadingSubText) loadingSubText.textContent = "Mengecek apakah nama sudah pernah submit...";
                     await assertNameNotAlreadySubmitted(dataObj.namaLengkap);
 
-                    if(loadingSubText) loadingSubText.textContent = "Mengecek NIK KTP di data karyawan lama...";
-                    dataObj.riwayatKerjaSebelumnya = await buildRiwayatKerjaByNik(dataObj.nomorKTP);
-
                     if(loadingSubText) loadingSubText.textContent = "Mengirim data ke Spreadsheet. Mohon tunggu...";
                     const formDataParams = new URLSearchParams();
                     formDataParams.append("data", JSON.stringify(dataObj));
@@ -2069,7 +1923,7 @@
             const tbody = document.getElementById('tableBody');
             const syncBadge = document.getElementById('syncBadge');
             
-            if(tbody) tbody.innerHTML = '<tr><td colspan="38" class="px-6 py-12 text-center text-blue-600"><div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mx-auto mb-2"></div>Menarik data dari Spreadsheet... Mohon tunggu.</td></tr>';
+            if(tbody) tbody.innerHTML = '<tr><td colspan="37" class="px-6 py-12 text-center text-blue-600"><div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mx-auto mb-2"></div>Menarik data dari Spreadsheet... Mohon tunggu.</td></tr>';
             
             try {
                 const response = await fetchWithTimeout(GOOGLE_SCRIPT_URL, { method: 'GET' }, 60000);
@@ -2077,12 +1931,11 @@
                 
                 if(data.error) {
                     showToast("Error membaca Spreadsheet: " + data.error, "error");
-                    if(tbody) tbody.innerHTML = '<tr><td colspan="38" class="px-6 py-12 text-center text-red-500">Gagal memuat. Pastikan pengaturan Deploy Google Script disetel ke "Siapa saja" (Anyone).</td></tr>';
+                    if(tbody) tbody.innerHTML = '<tr><td colspan="37" class="px-6 py-12 text-center text-red-500">Gagal memuat. Pastikan pengaturan Deploy Google Script disetel ke "Siapa saja" (Anyone).</td></tr>';
                     return;
                 }
                 
                 globalEmployees = normalizeSpreadsheetRows(data);
-                updateAdminSummary();
                 applyFilter(); 
                 showToast("Data berhasil disinkronisasi dengan Spreadsheet!", "success");
                 
@@ -2097,7 +1950,7 @@
             } catch(e) {
                 console.error(e);
                 showToast("Gagal mengambil data dari Google Sheet.", "error");
-                if(tbody) tbody.innerHTML = '<tr><td colspan="38" class="px-6 py-12 text-center text-red-500">Gagal terhubung ke Spreadsheet. Periksa koneksi internet Anda.</td></tr>';
+                if(tbody) tbody.innerHTML = '<tr><td colspan="37" class="px-6 py-12 text-center text-red-500">Gagal terhubung ke Spreadsheet. Periksa koneksi internet Anda.</td></tr>';
             }
         }
 
@@ -2109,7 +1962,7 @@
             if(!tbody) return;
 
             if(!filteredEmployees || filteredEmployees.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="38" class="px-6 py-12 text-center text-gray-500">Belum ada data karyawan / Data kosong pada filter ini.</td></tr>`; return;
+                tbody.innerHTML = `<tr><td colspan="37" class="px-6 py-12 text-center text-gray-500">Belum ada data karyawan / Data kosong pada filter ini.</td></tr>`; return;
             }
 
             const getPreviewUrl = (url) => {
@@ -2147,7 +2000,6 @@
                     <td class="px-4 py-3">${emp.alamatEmail || '-'}</td>
                     <td class="px-4 py-3">${emp.noHandphone || '-'}</td>
                     <td class="px-4 py-3">${emp.nomorKTP || '-'}</td>
-                    <td class="px-4 py-3 whitespace-normal min-w-[260px] text-xs text-slate-700">${emp.riwayatKerjaSebelumnya || '-'}</td>
                     <td class="px-4 py-3">${emp.provinsi || '-'}</td>
                     <td class="px-4 py-3">${emp.kabupaten || '-'}</td>
                     <td class="px-4 py-3">${emp.kecamatan || '-'}</td>
@@ -2242,13 +2094,9 @@
         if(btnExportExcel) {
             btnExportExcel.addEventListener('click', function() {
                 if(!window.XLSX) { showToast("Pustaka Excel sedang dimuat.", 'error'); return; }
-                const exportFrom = exportDateFromEl && exportDateFromEl.value ? exportDateFromEl.value : getTodayLocalDate();
-                const exportTo = exportDateToEl && exportDateToEl.value ? exportDateToEl.value : exportFrom;
-                const exportEmployees = getEmployeesByDateRange(exportFrom, exportTo);
-                const exportLabel = rangeLabel(exportFrom, exportTo);
-                if(!exportEmployees || exportEmployees.length === 0) { showToast(`Belum ada data untuk di-export pada rentang ${exportLabel}.`, 'error'); return; }
+                if(!filteredEmployees || filteredEmployees.length === 0) { showToast("Belum ada data untuk di-export pada filter ini.", 'error'); return; }
 
-                const formattedData = exportEmployees.map(emp => ({
+                const formattedData = filteredEmployees.map(emp => ({
                     'Waktu Pengisian': emp.waktu || '', 'Foto Karyawan (URL)': emp.fotoUrl || '',
                     'Nama Lengkap': emp.namaLengkap || '', 'Pengalaman Garment YA/TIDAK': emp.pengalamanGarment || '',
                     'Nama Perusahaan': emp.namaPerusahaan || '', 'BAGIAN': emp.bagian || '', 'LAMA BEKERJA': emp.lamaBekerja || '',
@@ -2260,7 +2108,6 @@
                     // PERBAIKAN: Menghapus tanda (') agar NIK & Nomor diekspor bersih, namun tetap terformat string.
                     'No Handphone Aktif': emp.noHandphone ? emp.noHandphone.replace(/'/g, "") : '', 
                     'Nomor KTP': emp.nomorKTP ? emp.nomorKTP.replace(/'/g, "") : '',
-                    'Cek NIK Pernah Kerja': emp.riwayatKerjaSebelumnya || '',
                     
                     'Provinsi': emp.provinsi || '', 'Kabupaten': emp.kabupaten || '', 'Kecamatan': emp.kecamatan || '', 
                     'Kelurahan': emp.kelurahan || '', 
@@ -2310,7 +2157,7 @@
 
                 const workbook = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(workbook, worksheet, "Data Karyawan");
-                XLSX.writeFile(workbook, `Database_Karyawan_Baru_${exportLabel.replace(/\s+/g, "_")}.xlsx`);
+                XLSX.writeFile(workbook, "Database_Karyawan_Baru.xlsx");
             });
         }
 
@@ -2320,21 +2167,17 @@
         const btnDownloadPhotos = document.getElementById('btnDownloadPhotos');
         if(btnDownloadPhotos) {
             btnDownloadPhotos.addEventListener('click', async () => {
-                if(!globalEmployees || globalEmployees.length === 0) {
+                if(!filteredEmployees || filteredEmployees.length === 0) {
                     showToast("Tarik (Sync) data dari Spreadsheet terlebih dahulu.", "error"); return;
                 }
-                const photoFrom = photoDateFromEl && photoDateFromEl.value ? photoDateFromEl.value : getTodayLocalDate();
-                const photoTo = photoDateToEl && photoDateToEl.value ? photoDateToEl.value : photoFrom;
-                const photoLabel = rangeLabel(photoFrom, photoTo);
-                const photoEmployees = getEmployeesByDateRange(photoFrom, photoTo);
-                const withPhotos = photoEmployees.filter(hasValidPhoto);
+                const withPhotos = filteredEmployees.filter(e => e.fotoUrl && e.fotoUrl.includes('/d/'));
                 if(withPhotos.length === 0) {
-                    showToast(`Tidak ada file foto untuk didownload pada rentang ${photoLabel}.`, "error"); return;
+                    showToast("Tidak ada file foto untuk didownload pada filter ini.", "error"); return;
                 }
                 
-                if(!confirm(`Ditemukan ${withPhotos.length} foto pada rentang ${photoLabel}. \n\nLanjut download semua?`)) return;
+                if(!confirm(`Ditemukan ${withPhotos.length} foto pada tanggal ini. \n\nLanjut download semua?`)) return;
 
-                showToast(`Memulai unduhan ${withPhotos.length} foto rentang ${photoLabel} berurutan...`, "success");
+                showToast(`Memulai unduhan ${withPhotos.length} foto berurutan...`, "success");
                 
                 for(let i = 0; i < withPhotos.length; i++) {
                     const emp = withPhotos[i];
